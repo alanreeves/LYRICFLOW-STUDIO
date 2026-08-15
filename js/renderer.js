@@ -32,7 +32,7 @@ export class CanvasRenderer {
       positionMode: 'fixed', // 'fixed' | 'dynamic'
       verticalAlign: 'center', // 'top' | 'center' | 'bottom'
       textAlign: 'center', // 'left' | 'center' | 'right'
-      transitionType: 'crossfade', // 'crossfade' | 'fade' | 'slide_up' | 'zoom_punch' | 'appear'
+      transitionType: 'fade', // 'fade' | 'crossfade' | 'slide_up' | 'zoom_punch' | 'appear'
       transitionSpeed: 0.4, // In seconds (0.1 to 2.0)
     };
 
@@ -140,16 +140,17 @@ export class CanvasRenderer {
     const newText = isBlank ? '' : (cue ? cue.text : '');
     
     if (newText !== this.activeCueText) {
-      const transType = this.style.transitionType || 'crossfade';
+      const transType = this.style.transitionType || 'fade';
 
-      // Save previous text for smooth crossfade if previous text exists
-      if (this.activeCueText && this.cueOpacity > 0.05 && transType !== 'appear') {
+      // Save previous text ONLY if explicitly in 'crossfade' mode; for 'fade' and others immediately clear old lyrics
+      if (this.activeCueText && this.cueOpacity > 0.05 && transType === 'crossfade') {
         this.prevCueText = this.activeCueText;
         this.prevCueOpacity = this.cueOpacity;
         this.prevX = this.currentX;
         this.prevY = this.currentY;
         this.prevScale = this.scale;
       } else {
+        // Immediately clear used lyrics so they don't linger on screen while new lyrics fade in
         this.prevCueText = '';
         this.prevCueOpacity = 0.0;
       }
@@ -315,9 +316,9 @@ export class CanvasRenderer {
       this.slideOffsetY += (0 - this.slideOffsetY) * lerpRate;
     }
 
-    // 3. Draw Outgoing previous text for smooth crossfade
-    if (this.prevCueText && this.prevCueOpacity > 0.005 && transType !== 'appear') {
-      this.prevCueOpacity += (0 - this.prevCueOpacity) * lerpRate;
+    // 3. Draw Outgoing previous text only for crossfade with fast decay so it never lingers
+    if (this.prevCueText && this.prevCueOpacity > 0.005 && transType === 'crossfade') {
+      this.prevCueOpacity += (0 - this.prevCueOpacity) * (lerpRate * 2.5);
       this._renderText(ctx, this.prevCueText, this.prevX, this.prevY, w, h, this.prevCueOpacity, this.prevScale);
     }
 
