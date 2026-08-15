@@ -11,6 +11,24 @@ export class MediaPool {
 
     // Procedural gradient animation time counter
     this.animTime = 0;
+
+    // Background playback speed rate (0.25x - 3.0x)
+    this.videoSpeed = 1.0;
+  }
+
+  setVideoSpeed(speed) {
+    const val = Math.max(0.1, Math.min(4.0, parseFloat(speed) || 1.0));
+    this.videoSpeed = Number(val.toFixed(2));
+    this.assets.forEach((asset) => {
+      if (asset.type === 'video' && asset.element) {
+        asset.element.playbackRate = this.videoSpeed;
+      }
+    });
+    return this.videoSpeed;
+  }
+
+  getVideoSpeed() {
+    return this.videoSpeed;
   }
 
   async addFile(file) {
@@ -35,6 +53,7 @@ export class MediaPool {
       video.muted = true;
       video.playsInline = true;
       video.autoplay = true;
+      video.playbackRate = this.videoSpeed;
 
       await new Promise((resolve) => {
         video.onloadeddata = () => {
@@ -208,7 +227,7 @@ export class MediaPool {
    */
   drawBackground(ctx, width, height) {
     const active = this.getActiveAsset();
-    this.animTime += 0.015;
+    this.animTime += 0.015 * this.videoSpeed;
 
     if (!active) {
       // Default dark backdrop
@@ -220,6 +239,9 @@ export class MediaPool {
     if (active.type === 'image' && active.element) {
       this._drawImageCover(ctx, active.element, width, height);
     } else if (active.type === 'video' && active.element) {
+      if (active.element.playbackRate !== this.videoSpeed) {
+        active.element.playbackRate = this.videoSpeed;
+      }
       if (active.element.paused) {
         active.element.play().catch(() => {});
       }

@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.3';
+export const APP_VERSION = '1.0.4';
 
 class App {
   constructor() {
@@ -44,6 +44,7 @@ class App {
     this._setupExportControls();
     this._setupGlobalShortcuts();
     this._setupDemoLoader();
+    this._setupVideoSpeedControls();
     this._setupPwaInstall();
     this._setupSettingsMenu();
     this._setupServiceWorker();
@@ -1410,12 +1411,81 @@ class App {
   }
 
   // ==========================================
-  // 12. SERVICE WORKER REGISTRATION (PWA)
+  // 12. VIDEO SPEED CONTROLS
+  // ==========================================
+  _setupVideoSpeedControls() {
+    const bgSlider = document.getElementById('bg-video-speed-slider');
+    const bgVal = document.getElementById('bg-video-speed-val');
+    const previewSlider = document.getElementById('preview-video-speed-slider');
+    const previewVal = document.getElementById('preview-video-speed-val');
+    const studioSlider = document.getElementById('studio-video-speed-slider');
+    const studioVal = document.getElementById('studio-video-speed-val');
+    const presetBtns = document.querySelectorAll('.btn-video-speed-preset');
+
+    const updateSpeedUI = (speed, showFeedback = false) => {
+      const parsedSpeed = Number(speed) || 1.0;
+      const applied = this.mediaPool.setVideoSpeed(parsedSpeed);
+      const formatted = `${applied.toFixed(2).replace(/\.?0+$/, '')}x`;
+
+      if (bgSlider) bgSlider.value = applied;
+      if (bgVal) bgVal.textContent = formatted;
+      if (previewSlider) previewSlider.value = applied;
+      if (previewVal) previewVal.textContent = formatted;
+      if (studioSlider) studioSlider.value = applied;
+      if (studioVal) studioVal.textContent = formatted;
+
+      presetBtns.forEach((btn) => {
+        const btnSpeed = parseFloat(btn.dataset.speed);
+        if (Math.abs(btnSpeed - applied) < 0.04) {
+          btn.classList.add('active', 'bg-brand-600', 'text-white', 'border-brand-500');
+          btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        } else {
+          btn.classList.remove('active', 'bg-brand-600', 'text-white', 'border-brand-500');
+          btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        }
+      });
+
+      if (showFeedback) {
+        this.showToast(`Video speed set to ${formatted}`, 'info', 1500);
+      }
+    };
+
+    bgSlider?.addEventListener('input', (e) => {
+      updateSpeedUI(parseFloat(e.target.value));
+    });
+    bgSlider?.addEventListener('change', (e) => {
+      updateSpeedUI(parseFloat(e.target.value), true);
+    });
+
+    previewSlider?.addEventListener('input', (e) => {
+      updateSpeedUI(parseFloat(e.target.value));
+    });
+    previewSlider?.addEventListener('change', (e) => {
+      updateSpeedUI(parseFloat(e.target.value), true);
+    });
+
+    studioSlider?.addEventListener('input', (e) => {
+      updateSpeedUI(parseFloat(e.target.value));
+    });
+    studioSlider?.addEventListener('change', (e) => {
+      updateSpeedUI(parseFloat(e.target.value), true);
+    });
+
+    presetBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed);
+        updateSpeedUI(speed, true);
+      });
+    });
+  }
+
+  // ==========================================
+  // 13. SERVICE WORKER REGISTRATION (PWA)
   // ==========================================
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.3').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.4').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
