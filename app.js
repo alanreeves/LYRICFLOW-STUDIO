@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.9';
+export const APP_VERSION = '1.0.10';
 
 class App {
   constructor() {
@@ -1125,10 +1125,10 @@ class App {
     window.addEventListener('keydown', (e) => {
       // Ignore if user is currently typing in an input or textarea
       const target = e.target;
-      // Ctrl+S or Cmd+S: Quick Save Project
+      // Ctrl+S or Cmd+S: Quick Save Project to Disk
       if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        this.saveProjectState(true);
+        this.exportProjectJSON();
         return;
       }
 
@@ -1607,54 +1607,50 @@ class App {
   // 14. PROJECT & RECORDING SESSION PERSISTENCE
   // ==========================================
   _setupProjectPersistenceControls() {
-    // Header Buttons
+    // Header Buttons -> Direct to Disk
     document.getElementById('btn-save-project')?.addEventListener('click', () => {
-      this.saveProjectState(true);
+      this.exportProjectJSON();
     });
 
     document.getElementById('btn-load-project')?.addEventListener('click', () => {
-      this.loadProjectState(null, true);
+      this.triggerLoadFromDisk();
     });
 
-    // Step 4 Live Studio Toolbar Buttons
+    // Step 4 Live Studio Toolbar Buttons -> Direct to Disk
     document.getElementById('btn-studio-save-session')?.addEventListener('click', () => {
-      this.saveProjectState(true);
+      this.exportProjectJSON();
     });
 
     document.getElementById('btn-studio-reload-session')?.addEventListener('click', () => {
-      this.loadProjectState(null, true);
+      this.triggerLoadFromDisk();
     });
 
-    // Settings Modal Buttons
+    // Settings Modal Buttons -> Direct to Disk
     document.getElementById('btn-settings-save-project')?.addEventListener('click', () => {
-      this.saveProjectState(true);
+      this.exportProjectJSON();
       document.getElementById('settings-modal')?.classList.add('hidden');
     });
 
     document.getElementById('btn-settings-load-project')?.addEventListener('click', () => {
-      this.loadProjectState(null, true);
+      this.triggerLoadFromDisk();
       document.getElementById('settings-modal')?.classList.add('hidden');
     });
 
-    document.getElementById('btn-settings-export-json')?.addEventListener('click', () => {
-      this.exportProjectJSON();
-    });
-
     const fileInput = document.getElementById('project-file-input');
-    document.getElementById('btn-settings-import-json')?.addEventListener('click', () => {
-      if (fileInput) {
-        fileInput.value = '';
-        fileInput.click();
-      }
-    });
-
     fileInput?.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       if (file) {
         this.importProjectJSON(file);
-        document.getElementById('settings-modal')?.classList.add('hidden');
       }
     });
+  }
+
+  triggerLoadFromDisk() {
+    const fileInput = document.getElementById('project-file-input');
+    if (fileInput) {
+      fileInput.value = '';
+      fileInput.click();
+    }
   }
 
   saveProjectState(showNotification = true) {
@@ -1967,26 +1963,50 @@ class App {
     this._syncStylePreview();
   }
 
-  exportProjectJSON() {
+  async exportProjectJSON() {
     const data = this.saveProjectState(false);
     if (!data) return;
 
+    const jsonStr = JSON.stringify(data, null, 2);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const defaultFilename = `lyricflow-project-${dateStr}.json`;
+
+    // Modern direct file picker if supported
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultFilename,
+          types: [{
+            description: 'LyricFlow Project JSON',
+            accept: { 'application/json': ['.json'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonStr);
+        await writable.close();
+        this.showToast('Project file saved directly to disk!', 'success', 3000);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled
+        console.warn('showSaveFilePicker fallback to download:', err);
+      }
+    }
+
+    // Standard download to disk fallback
     try {
-      const jsonStr = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `lyricflow-project-${dateStr}.json`;
+      a.download = defaultFilename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      this.showToast('Project JSON backup file exported successfully!', 'success', 3000);
+      this.showToast('Project file saved directly to disk!', 'success', 3000);
     } catch (e) {
       console.error('Export JSON error:', e);
-      this.showToast('Failed to export project JSON', 'error');
+      this.showToast('Failed to save project to disk', 'error');
     }
   }
 
@@ -1996,9 +2016,9 @@ class App {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
-        const success = this.loadProjectState(data, true);
+        const success = this.loadProjectState(data, false);
         if (success) {
-          this.showToast(`Imported project from ${file.name}!`, 'success', 3000);
+          this.showToast(`✨ Successfully loaded project from disk: ${file.name}! Ready to record.`, 'success', 3500);
         }
       } catch (err) {
         console.error('Error importing project file:', err);
@@ -2014,7 +2034,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.9').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.10').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
