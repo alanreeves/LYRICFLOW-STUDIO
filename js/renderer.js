@@ -475,6 +475,8 @@ export class CanvasRenderer {
     if (!text) return '';
     return text
       .replace(/\[slide\]\s*/gi, '')
+      .replace(/\[video\]\s*/gi, '')
+      .replace(/\[vid\]\s*/gi, '')
       .split('\n')
       .map(line => {
         return line

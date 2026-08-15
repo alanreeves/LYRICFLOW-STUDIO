@@ -203,6 +203,51 @@ export class MediaPool {
     return this.slides[this.currentSlideIndex] || this.slides[0] || null;
   }
 
+  async addVideoFiles(fileList) {
+    const files = Array.from(fileList || []).filter(f => f.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg)$/i.test(f.name));
+    if (files.length === 0) {
+      throw new Error('No valid video files found in the selection.');
+    }
+
+    // Sort naturally by filename (e.g. video1.mp4, video2.mp4, video10.mp4)
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const loadedVideos = [];
+    for (const file of files) {
+      const asset = await this.addFile(file);
+      loadedVideos.push(asset);
+    }
+
+    this.slideshowMode = false;
+    if (loadedVideos.length > 0) {
+      this.setActiveAsset(loadedVideos[0].id);
+    }
+
+    return loadedVideos;
+  }
+
+  nextVideo() {
+    const videos = this.assets.filter(a => a.type === 'video');
+    if (videos.length === 0) return null;
+
+    const currIdx = videos.findIndex(v => v.id === this.activeAssetId);
+    const nextIdx = (currIdx + 1) % videos.length;
+    const nextVid = videos[nextIdx];
+    this.setActiveAsset(nextVid.id);
+    return nextVid;
+  }
+
+  prevVideo() {
+    const videos = this.assets.filter(a => a.type === 'video');
+    if (videos.length === 0) return null;
+
+    const currIdx = videos.findIndex(v => v.id === this.activeAssetId);
+    const prevIdx = (currIdx - 1 + videos.length) % videos.length;
+    const prevVid = videos[prevIdx];
+    this.setActiveAsset(prevVid.id);
+    return prevVid;
+  }
+
   addProceduralGradient(name = 'Neon Cyber Aurora', colors = ['#0f172a', '#312e81', '#4c1d95', '#064e3b']) {
     const id = 'proc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 

@@ -83,8 +83,13 @@ export class LyricsParser {
 
     this.cues = chunks.map((chunkText, idx) => {
       const hasSlideTag = /\[slide\]/i.test(chunkText);
-      // Cleanly remove [SLIDE] anywhere at start or within cue line
-      const cleanText = chunkText.replace(/\[slide\]\s*/gi, '').trim();
+      const hasVideoTag = /\[video\]|\[vid\]/i.test(chunkText);
+      // Cleanly remove [SLIDE] and [VIDEO] anywhere at start or within cue line
+      const cleanText = chunkText
+        .replace(/\[slide\]\s*/gi, '')
+        .replace(/\[video\]\s*/gi, '')
+        .replace(/\[vid\]\s*/gi, '')
+        .trim();
       const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
       return {
@@ -92,9 +97,10 @@ export class LyricsParser {
         index: idx,
         text: cleanText,
         lines: lines,
-        autoSlide: hasSlideTag
+        autoSlide: hasSlideTag,
+        autoVideo: hasVideoTag
       };
-    }).filter(cue => cue.text.length > 0 || cue.autoSlide);
+    }).filter(cue => cue.text.length > 0 || cue.autoSlide || cue.autoVideo);
 
     if (this.onCuesUpdatedCallback) {
       this.onCuesUpdatedCallback(this.cues);
@@ -106,10 +112,16 @@ export class LyricsParser {
   updateCueText(index, newText) {
     if (index >= 0 && index < this.cues.length) {
       const hasSlideTag = /\[slide\]/i.test(newText);
-      const cleanText = newText.replace(/\[slide\]\s*/gi, '').trim();
+      const hasVideoTag = /\[video\]|\[vid\]/i.test(newText);
+      const cleanText = newText
+        .replace(/\[slide\]\s*/gi, '')
+        .replace(/\[video\]\s*/gi, '')
+        .replace(/\[vid\]\s*/gi, '')
+        .trim();
       this.cues[index].text = cleanText;
       this.cues[index].lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       this.cues[index].autoSlide = hasSlideTag;
+      this.cues[index].autoVideo = hasVideoTag;
       if (this.onCuesUpdatedCallback) this.onCuesUpdatedCallback(this.cues);
     }
   }

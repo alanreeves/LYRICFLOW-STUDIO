@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.18';
+export const APP_VERSION = '1.0.19';
 
 class App {
   constructor() {
@@ -396,6 +396,36 @@ class App {
       this.showToast('Cleared slideshow', 'info');
     });
 
+    // Video Folder Input
+    const videoFolderInput = document.getElementById('video-folder-input');
+    videoFolderInput?.addEventListener('change', async (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        try {
+          const loaded = await this.mediaPool.addVideoFiles(files);
+          this._renderBgPool();
+          this.showToast(`Loaded ${loaded.length} videos from folder!`, 'success');
+        } catch (err) {
+          this.showToast(err.message || 'Error loading video folder', 'error');
+        }
+      }
+    });
+
+    // Video Multiple Files Input
+    const videoFilesInput = document.getElementById('video-files-input');
+    videoFilesInput?.addEventListener('change', async (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        try {
+          const loaded = await this.mediaPool.addVideoFiles(files);
+          this._renderBgPool();
+          this.showToast(`Loaded ${loaded.length} video files!`, 'success');
+        } catch (err) {
+          this.showToast(err.message || 'Error loading video files', 'error');
+        }
+      }
+    });
+
     // Background Media Pool Upload
     const bgInput = document.getElementById('bg-input');
     bgInput?.addEventListener('change', async (e) => {
@@ -684,6 +714,7 @@ class App {
           <div class="flex flex-col gap-1 items-start">
             <span class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">${idx + 1}</span>
             ${cue.autoSlide ? '<span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-sm" title="Automatically changes background slide"><i data-lucide="image" class="w-2.5 h-2.5"></i>SLIDE</span>' : ''}
+            ${cue.autoVideo ? '<span class="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-sm" title="Automatically changes background video"><i data-lucide="film" class="w-2.5 h-2.5"></i>VIDEO</span>' : ''}
           </div>
           <textarea class="cue-edit-textarea w-full bg-transparent text-sm text-slate-200 resize-none outline-none font-medium leading-relaxed focus:bg-slate-900/80 p-1 rounded transition" rows="${Math.max(1, cue.lines.length)}">${cue.text}</textarea>
         </div>
@@ -1060,6 +1091,11 @@ class App {
       this.advanceCueAndSlide();
     });
 
+    // Next Video Button
+    document.getElementById('btn-studio-next-video')?.addEventListener('click', () => {
+      this.advanceVideo();
+    });
+
     // Prev Cue Button
     document.getElementById('btn-prev-cue')?.addEventListener('click', () => {
       this.previousCue();
@@ -1302,10 +1338,23 @@ class App {
         this._updateSlideTelemetryUI();
       }
 
+      // Auto-advance background video when cue has [VIDEO] tag
+      if (activeCue && activeCue.autoVideo) {
+        this.advanceVideo();
+      }
+
       this._updatePrompterUI();
     } else {
       // Reached the end of lyrics
       this.showToast('Final lyric cue reached!', 'info');
+    }
+  }
+
+  advanceVideo() {
+    const nextVid = this.mediaPool.nextVideo();
+    if (nextVid) {
+      this._renderBgPool();
+      this.showToast(`Switched to Video: ${nextVid.name}`, 'info', 1200);
     }
   }
 
@@ -1355,15 +1404,15 @@ class App {
     }
 
     if (prompterActive) {
-      prompterActive.innerHTML = currentCue
-        ? `${currentCue.text}${currentCue.autoSlide ? ' <span class="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold">📸 SLIDE</span>' : ''}`
-        : '(No cue active yet)';
+      const slideBadge = currentCue && currentCue.autoSlide ? ' <span class="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold">📸 SLIDE</span>' : '';
+      const videoBadge = currentCue && currentCue.autoVideo ? ' <span class="ml-1.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[10px] font-mono font-bold">🎬 VIDEO</span>' : '';
+      prompterActive.innerHTML = currentCue ? `${currentCue.text}${slideBadge}${videoBadge}` : '(No cue active yet)';
     }
 
     if (prompterNext) {
-      prompterNext.innerHTML = nextCue
-        ? `${nextCue.text.replace(/\n/g, ' ')}${nextCue.autoSlide ? ' <span class="ml-1 px-1 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold">📸</span>' : ''}`
-        : '— End of Lyrics —';
+      const slideIcon = nextCue && nextCue.autoSlide ? ' <span class="ml-1 px-1 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold">📸</span>' : '';
+      const videoIcon = nextCue && nextCue.autoVideo ? ' <span class="ml-1 px-1 rounded bg-purple-500/20 text-purple-400 text-[10px] font-mono font-bold">🎬</span>' : '';
+      prompterNext.innerHTML = nextCue ? `${nextCue.text.replace(/\n/g, ' ')}${slideIcon}${videoIcon}` : '— End of Lyrics —';
     }
 
     // Mini Cue List
@@ -1375,8 +1424,10 @@ class App {
         const isActive = idx === this.activeCueIndex;
         const isPast = idx < this.activeCueIndex;
         item.className = `p-1.5 px-2.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${isActive ? 'bg-brand-500/20 border border-brand-500/40 text-white font-semibold' : isPast ? 'text-slate-500 opacity-60' : 'text-slate-400 hover:bg-slate-800'}`;
+        const sTag = cue.autoSlide ? ' <span class="text-[9px] text-emerald-400 font-bold ml-1 font-mono">📸</span>' : '';
+        const vTag = cue.autoVideo ? ' <span class="text-[9px] text-purple-400 font-bold ml-1 font-mono">🎬</span>' : '';
         item.innerHTML = `
-          <span class="truncate mr-2">${idx + 1}. ${cue.text.replace(/\n/g, ' ')}${cue.autoSlide ? ' <span class="text-[9px] text-emerald-400 font-bold ml-1 font-mono">📸</span>' : ''}</span>
+          <span class="truncate mr-2">${idx + 1}. ${cue.text.replace(/\n/g, ' ')}${sTag}${vTag}</span>
           ${isActive ? '<span class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0 animate-pulse"></span>' : ''}
         `;
         item.addEventListener('click', () => {
@@ -1385,6 +1436,9 @@ class App {
           if (cue.autoSlide && this.mediaPool.slideshowMode) {
             this.mediaPool.advanceSlide();
             this._updateSlideTelemetryUI();
+          }
+          if (cue.autoVideo) {
+            this.advanceVideo();
           }
           this._updatePrompterUI();
         });
@@ -1486,6 +1540,14 @@ class App {
         if (this.currentStep === 4) {
           e.preventDefault();
           this.toggleBlankCue();
+        }
+      }
+
+      // 'V' Key: Switch to Next Video
+      if (e.key === 'v' || e.key === 'V') {
+        if (this.currentStep === 4) {
+          e.preventDefault();
+          this.advanceVideo();
         }
       }
 
@@ -2378,7 +2440,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.18').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.19').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
