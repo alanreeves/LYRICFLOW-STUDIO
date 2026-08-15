@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.15';
+export const APP_VERSION = '1.0.16';
 
 class App {
   constructor() {
@@ -555,6 +555,35 @@ class App {
     });
 
     if (window.lucide) window.lucide.createIcons();
+  }
+
+  _updateSlideshowUI() {
+    const statusBar = document.getElementById('slideshow-status-bar');
+    const statusText = document.getElementById('slideshow-status-text');
+    const countBadge = document.getElementById('bg-pool-count');
+
+    if (this.mediaPool.slideshowMode && this.mediaPool.slides.length > 0) {
+      if (statusBar) {
+        statusBar.classList.remove('hidden');
+        statusBar.classList.add('flex');
+      }
+      if (statusText) {
+        statusText.textContent = `Slideshow Active (${this.mediaPool.slides.length} slides loaded)`;
+      }
+      if (countBadge) {
+        countBadge.textContent = `${this.mediaPool.slides.length} Slides`;
+        countBadge.className = 'badge-success';
+      }
+    } else {
+      if (statusBar) {
+        statusBar.classList.add('hidden');
+        statusBar.classList.remove('flex');
+      }
+      if (countBadge) {
+        countBadge.textContent = `${this.mediaPool.assets.length} Loaded`;
+      }
+    }
+    this._updateSlideTelemetryUI();
   }
 
   _updateLyricsSummary() {
@@ -2331,7 +2360,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.15').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.16').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
