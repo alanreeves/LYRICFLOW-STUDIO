@@ -81,12 +81,20 @@ export class LyricsParser {
         chunks = raw.split(/\n\s*\n+/).map(c => c.trim()).filter(c => c.length > 0);
     }
 
-    this.cues = chunks.map((chunkText, idx) => ({
-      id: 'cue_' + idx + '_' + Math.random().toString(36).substr(2, 4),
-      index: idx,
-      text: chunkText,
-      lines: chunkText.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-    }));
+    this.cues = chunks.map((chunkText, idx) => {
+      const hasSlideTag = /\[slide\]/i.test(chunkText);
+      // Cleanly remove [SLIDE] anywhere at start or within cue line
+      const cleanText = chunkText.replace(/\[slide\]\s*/gi, '').trim();
+      const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+      return {
+        id: 'cue_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+        index: idx,
+        text: cleanText,
+        lines: lines,
+        autoSlide: hasSlideTag
+      };
+    }).filter(cue => cue.text.length > 0 || cue.autoSlide);
 
     if (this.onCuesUpdatedCallback) {
       this.onCuesUpdatedCallback(this.cues);
@@ -97,8 +105,11 @@ export class LyricsParser {
 
   updateCueText(index, newText) {
     if (index >= 0 && index < this.cues.length) {
-      this.cues[index].text = newText;
-      this.cues[index].lines = newText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const hasSlideTag = /\[slide\]/i.test(newText);
+      const cleanText = newText.replace(/\[slide\]\s*/gi, '').trim();
+      this.cues[index].text = cleanText;
+      this.cues[index].lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      this.cues[index].autoSlide = hasSlideTag;
       if (this.onCuesUpdatedCallback) this.onCuesUpdatedCallback(this.cues);
     }
   }

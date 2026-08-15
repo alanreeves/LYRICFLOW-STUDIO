@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.16';
+export const APP_VERSION = '1.0.17';
 
 class App {
   constructor() {
@@ -681,7 +681,10 @@ class App {
       card.className = 'cue-card flex items-start justify-between gap-3 group';
       card.innerHTML = `
         <div class="flex items-start gap-2.5 flex-1">
-          <span class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">${idx + 1}</span>
+          <div class="flex flex-col gap-1 items-start">
+            <span class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">${idx + 1}</span>
+            ${cue.autoSlide ? '<span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-sm" title="Automatically changes background slide"><i data-lucide="image" class="w-2.5 h-2.5"></i>SLIDE</span>' : ''}
+          </div>
           <textarea class="cue-edit-textarea w-full bg-transparent text-sm text-slate-200 resize-none outline-none font-medium leading-relaxed focus:bg-slate-900/80 p-1 rounded transition" rows="${Math.max(1, cue.lines.length)}">${cue.text}</textarea>
         </div>
         <button class="btn-delete-cue text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1" title="Delete cue">
@@ -1292,6 +1295,13 @@ class App {
       this.activeCueIndex++;
       const activeCue = this.lyrics.cues[this.activeCueIndex];
       this.renderer.setCue(activeCue, false);
+
+      // Auto-advance background slide when cue has [SLIDE] tag
+      if (activeCue && activeCue.autoSlide && this.mediaPool.slideshowMode) {
+        this.mediaPool.advanceSlide();
+        this._updateSlideTelemetryUI();
+      }
+
       this._updatePrompterUI();
     } else {
       // Reached the end of lyrics
@@ -1345,11 +1355,15 @@ class App {
     }
 
     if (prompterActive) {
-      prompterActive.textContent = currentCue ? currentCue.text : '(No cue active yet)';
+      prompterActive.innerHTML = currentCue
+        ? `${currentCue.text}${currentCue.autoSlide ? ' <span class="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold">📸 SLIDE</span>' : ''}`
+        : '(No cue active yet)';
     }
 
     if (prompterNext) {
-      prompterNext.textContent = nextCue ? nextCue.text.replace(/\n/g, ' ') : '— End of Lyrics —';
+      prompterNext.innerHTML = nextCue
+        ? `${nextCue.text.replace(/\n/g, ' ')}${nextCue.autoSlide ? ' <span class="ml-1 px-1 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold">📸</span>' : ''}`
+        : '— End of Lyrics —';
     }
 
     // Mini Cue List
@@ -1362,12 +1376,16 @@ class App {
         const isPast = idx < this.activeCueIndex;
         item.className = `p-1.5 px-2.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${isActive ? 'bg-brand-500/20 border border-brand-500/40 text-white font-semibold' : isPast ? 'text-slate-500 opacity-60' : 'text-slate-400 hover:bg-slate-800'}`;
         item.innerHTML = `
-          <span class="truncate mr-2">${idx + 1}. ${cue.text.replace(/\n/g, ' ')}</span>
+          <span class="truncate mr-2">${idx + 1}. ${cue.text.replace(/\n/g, ' ')}${cue.autoSlide ? ' <span class="text-[9px] text-emerald-400 font-bold ml-1 font-mono">📸</span>' : ''}</span>
           ${isActive ? '<span class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0 animate-pulse"></span>' : ''}
         `;
         item.addEventListener('click', () => {
           this.activeCueIndex = idx;
           this.renderer.setCue(cue, false);
+          if (cue.autoSlide && this.mediaPool.slideshowMode) {
+            this.mediaPool.advanceSlide();
+            this._updateSlideTelemetryUI();
+          }
           this._updatePrompterUI();
         });
         prompterList.appendChild(item);
@@ -2360,7 +2378,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.16').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.17').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

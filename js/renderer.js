@@ -474,6 +474,7 @@ export class CanvasRenderer {
   _stripPunctuation(text) {
     if (!text) return '';
     return text
+      .replace(/\[slide\]\s*/gi, '')
       .split('\n')
       .map(line => {
         return line
