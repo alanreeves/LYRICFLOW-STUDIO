@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.17';
+export const APP_VERSION = '1.0.18';
 
 class App {
   constructor() {
@@ -2057,7 +2057,7 @@ class App {
       if (data.lyrics.cues && Array.isArray(data.lyrics.cues) && data.lyrics.cues.length > 0) {
         this.lyrics.cues = data.lyrics.cues;
       } else {
-        this.lyrics.parseRawText(data.lyrics.rawText || '');
+        this.lyrics.setRawText(data.lyrics.rawText || '', true);
       }
 
       document.querySelectorAll('.btn-chunk-rule').forEach((btn) => {
@@ -2151,7 +2151,7 @@ class App {
     if (timeDisplay) timeDisplay.textContent = '00:00.0';
 
     // Transition smoothly to Live Studio (Step 4) ready to record
-    this._goToStep(4);
+    this.goToStep(4);
 
     if (showNotification) {
       this.showToast('✨ Settings reloaded fresh! Ready for your live studio session.', 'success', 3000);
@@ -2378,7 +2378,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.17').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.18').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
