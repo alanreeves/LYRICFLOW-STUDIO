@@ -80,11 +80,6 @@ class App {
   goToStep(stepNumber) {
     if (stepNumber < 1 || stepNumber > 5) return;
 
-    // Validation before stepping forward
-    if (stepNumber > 1 && !this.audio.duration && !this.audio.file) {
-      // Audio is recommended
-    }
-
     this.currentStep = stepNumber;
 
     // Hide all step views
@@ -688,6 +683,25 @@ class App {
       }
     };
 
+    // MP4 Encoding Progress callback
+    this.recorder.onProgressUpdate = (ratio, statusText) => {
+      const banner = document.getElementById('mp4-encoding-banner');
+      const bar = document.getElementById('mp4-encoding-bar');
+      const pct = document.getElementById('mp4-encoding-pct');
+      const status = document.getElementById('mp4-encoding-status');
+
+      if (banner) {
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+      }
+      if (bar) bar.style.width = `${Math.min(100, Math.round(ratio * 100))}%`;
+      if (pct) pct.textContent = `${Math.min(100, Math.round(ratio * 100))}%`;
+      if (status) {
+        status.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-brand-400"></i> <span>${statusText}</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    };
+
     // Video Recorder complete callback
     this.recorder.onRecordingComplete = (metadata) => {
       this._showExportView(metadata);
@@ -772,7 +786,7 @@ class App {
       recBadge.classList.remove('flex');
     }
 
-    this.showToast('Recording finalized! Compiling video export...', 'info');
+    this.showToast('Recording finished! Generating MP4 video file...', 'info');
   }
 
   advanceCue() {
@@ -938,6 +952,12 @@ class App {
   _showExportView(metadata) {
     this.goToStep(5);
 
+    const banner = document.getElementById('mp4-encoding-banner');
+    if (banner) {
+      banner.classList.remove('flex');
+      banner.classList.add('hidden');
+    }
+
     const videoPlayer = document.getElementById('export-video-player');
     const dlBtn1 = document.getElementById('btn-download-video');
     const dlBtn2 = document.getElementById('btn-download-video-secondary');
@@ -966,6 +986,8 @@ class App {
     if (statRes) statRes.textContent = `${metadata.width} x ${metadata.height}`;
     if (statFormat) statFormat.textContent = metadata.mimeType;
     if (statSize) statSize.textContent = `${metadata.sizeMB} MB`;
+
+    this.showToast('MP4 Video Ready for Download!', 'success');
   }
 
   // ==========================================
@@ -1040,7 +1062,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.0').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.1').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
