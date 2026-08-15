@@ -9,11 +9,18 @@ export class MediaPool {
     this.onAssetChangeCallback = null;
     this.onActiveChangeCallback = null;
 
+    // Image Slideshow Mode State
+    this.slideshowMode = false;
+    this.slides = []; // Array of { id, name, url, element, thumbnail }
+    this.currentSlideIndex = 0;
+    this.onSlideChangeCallback = null;
+
     // Procedural gradient animation time counter
     this.animTime = 0;
 
     // Background playback speed rate (0.125x [1/8 speed] - 3.0x)
     this.videoSpeed = 1.0;
+    this.isPlaying = false;
   }
 
   setVideoSpeed(speed) {
@@ -101,6 +108,99 @@ export class MediaPool {
     }
 
     return asset;
+  }
+
+  async addSlideshowFiles(fileList) {
+    const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(f.name));
+    if (files.length === 0) {
+      throw new Error('No valid image files found in the selection.');
+    }
+
+    // Sort naturally by filename (e.g. 1.jpg, 2.jpg, 10.jpg)
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const loadedSlides = [];
+    for (const file of files) {
+      const id = 'slide_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = url;
+      img.crossOrigin = 'anonymous';
+
+      await new Promise((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+
+      const slideObj = {
+        id,
+        type: 'image',
+        name: file.name,
+        url,
+        element: img,
+        thumbnail: url,
+        isCustom: true,
+        isSlide: true
+      };
+
+      loadedSlides.push(slideObj);
+      this.assets.push(slideObj);
+    }
+
+    this.slides = loadedSlides;
+    this.slideshowMode = true;
+    this.currentSlideIndex = 0;
+
+    if (this.onAssetChangeCallback) {
+      this.onAssetChangeCallback(this.assets);
+    }
+    if (this.onSlideChangeCallback) {
+      this.onSlideChangeCallback(this.getCurrentSlide(), this.currentSlideIndex, this.slides.length);
+    }
+
+    return loadedSlides;
+  }
+
+  setSlideshowMode(enabled) {
+    this.slideshowMode = !!enabled;
+    if (this.onSlideChangeCallback) {
+      this.onSlideChangeCallback(this.getCurrentSlide(), this.currentSlideIndex, this.slides.length);
+    }
+  }
+
+  advanceSlide() {
+    if (!this.slideshowMode || this.slides.length === 0) return null;
+    this.currentSlideIndex = (this.currentSlideIndex + 1) % this.slides.length;
+    const current = this.getCurrentSlide();
+    if (this.onSlideChangeCallback) {
+      this.onSlideChangeCallback(current, this.currentSlideIndex, this.slides.length);
+    }
+    return current;
+  }
+
+  prevSlide() {
+    if (!this.slideshowMode || this.slides.length === 0) return null;
+    this.currentSlideIndex = (this.currentSlideIndex - 1 + this.slides.length) % this.slides.length;
+    const current = this.getCurrentSlide();
+    if (this.onSlideChangeCallback) {
+      this.onSlideChangeCallback(current, this.currentSlideIndex, this.slides.length);
+    }
+    return current;
+  }
+
+  setSlideIndex(index) {
+    if (!this.slideshowMode || this.slides.length === 0) return null;
+    this.currentSlideIndex = Math.max(0, Math.min(this.slides.length - 1, index));
+    const current = this.getCurrentSlide();
+    if (this.onSlideChangeCallback) {
+      this.onSlideChangeCallback(current, this.currentSlideIndex, this.slides.length);
+    }
+    return current;
+  }
+
+  getCurrentSlide() {
+    if (!this.slideshowMode || this.slides.length === 0) return null;
+    return this.slides[this.currentSlideIndex] || this.slides[0] || null;
   }
 
   addProceduralGradient(name = 'Neon Cyber Aurora', colors = ['#0f172a', '#312e81', '#4c1d95', '#064e3b']) {
@@ -242,14 +342,27 @@ export class MediaPool {
       if (a.url && a.isCustom) URL.revokeObjectURL(a.url);
     });
     this.assets = [];
+    this.slides = [];
+    this.slideshowMode = false;
+    this.currentSlideIndex = 0;
     this.activeAssetId = null;
     if (this.onAssetChangeCallback) this.onAssetChangeCallback(this.assets);
+    if (this.onSlideChangeCallback) this.onSlideChangeCallback(null, 0, 0);
   }
 
   /**
    * Render background onto any canvas context
    */
   drawBackground(ctx, width, height) {
+    // 1. Slideshow mode takes precedence if active and slides exist
+    if (this.slideshowMode && this.slides.length > 0) {
+      const activeSlide = this.getCurrentSlide();
+      if (activeSlide && activeSlide.element) {
+        this._drawImageCover(ctx, activeSlide.element, width, height);
+        return;
+      }
+    }
+
     const active = this.getActiveAsset();
     if (this.isPlaying) {
       this.animTime += 0.015 * this.videoSpeed;

@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.13';
+export const APP_VERSION = '1.0.14';
 
 class App {
   constructor() {
@@ -24,15 +24,18 @@ class App {
     this.audio = new AudioManager();
     this.mediaPool = new MediaPool();
     this.lyrics = new LyricsParser();
+    this.renderer = new CanvasRenderer('studio-canvas', this.mediaPool);
+    this.stylePreviewRenderer = new CanvasRenderer('style-preview-canvas', this.mediaPool);
+    this.recorder = new VideoRecorder(this.renderer.canvas, this.audio);
+
+    // Sync slide indicator on slide changes
+    this.mediaPool.onSlideChangeCallback = () => {
+      this._updateSlideTelemetryUI();
+    };
     
     // Canvases
     this.masterCanvas = document.getElementById('master-canvas');
     this.styleCanvas = document.getElementById('style-preview-canvas');
-
-    this.renderer = new CanvasRenderer(this.masterCanvas, this.mediaPool);
-    this.stylePreviewRenderer = new CanvasRenderer(this.styleCanvas, this.mediaPool);
-
-    this.recorder = new VideoRecorder(this.masterCanvas, this.audio);
 
     // Studio State
     this.activeCueIndex = -1;
@@ -325,6 +328,73 @@ class App {
       }
     });
 
+    // Mode Selection Tabs: Videos / Pool vs Image Slideshow
+    const tabVideo = document.getElementById('tab-mode-video-pool');
+    const tabSlideshow = document.getElementById('tab-mode-slideshow');
+    const dropzoneVideo = document.getElementById('dropzone-video-pool-container');
+    const dropzoneSlideshow = document.getElementById('dropzone-slideshow-container');
+
+    tabVideo?.addEventListener('click', () => {
+      tabVideo.className = 'flex-1 py-1.5 px-2 rounded font-medium bg-brand-600 text-white transition text-center cursor-pointer';
+      tabSlideshow.className = 'flex-1 py-1.5 px-2 rounded font-medium text-slate-400 hover:text-white transition text-center cursor-pointer';
+      dropzoneVideo?.classList.remove('hidden');
+      dropzoneSlideshow?.classList.add('hidden');
+      this.mediaPool.setSlideshowMode(false);
+      this._updateSlideshowUI();
+      this.showToast('Background mode: Videos & Media Pool', 'info', 1200);
+    });
+
+    tabSlideshow?.addEventListener('click', () => {
+      tabSlideshow.className = 'flex-1 py-1.5 px-2 rounded font-medium bg-brand-600 text-white transition text-center cursor-pointer';
+      tabVideo.className = 'flex-1 py-1.5 px-2 rounded font-medium text-slate-400 hover:text-white transition text-center cursor-pointer';
+      dropzoneSlideshow?.classList.remove('hidden');
+      dropzoneVideo?.classList.add('hidden');
+      this.mediaPool.setSlideshowMode(true);
+      this._updateSlideshowUI();
+      this.showToast('Background mode: Image Slideshow', 'info', 1200);
+    });
+
+    // Slideshow Folder Input
+    const folderInput = document.getElementById('slideshow-folder-input');
+    folderInput?.addEventListener('change', async (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        try {
+          const loaded = await this.mediaPool.addSlideshowFiles(files);
+          this._updateSlideshowUI();
+          this._renderBgPool();
+          this.showToast(`Loaded ${loaded.length} slideshow images from folder!`, 'success');
+        } catch (err) {
+          this.showToast(err.message || 'Error loading folder images', 'error');
+        }
+      }
+    });
+
+    // Slideshow Multiple Files Input
+    const filesInput = document.getElementById('slideshow-files-input');
+    filesInput?.addEventListener('change', async (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        try {
+          const loaded = await this.mediaPool.addSlideshowFiles(files);
+          this._updateSlideshowUI();
+          this._renderBgPool();
+          this.showToast(`Loaded ${loaded.length} slideshow images!`, 'success');
+        } catch (err) {
+          this.showToast(err.message || 'Error loading images', 'error');
+        }
+      }
+    });
+
+    // Clear Slideshow
+    document.getElementById('btn-clear-slideshow')?.addEventListener('click', () => {
+      this.mediaPool.slides = [];
+      this.mediaPool.slideshowMode = false;
+      this._updateSlideshowUI();
+      this._renderBgPool();
+      this.showToast('Cleared slideshow', 'info');
+    });
+
     // Background Media Pool Upload
     const bgInput = document.getElementById('bg-input');
     bgInput?.addEventListener('change', async (e) => {
@@ -403,59 +473,87 @@ class App {
     if (strip) strip.innerHTML = '';
     if (switcher) switcher.innerHTML = '';
 
-    countBadge.textContent = `${this.mediaPool.assets.length} Loaded`;
-    if (this.mediaPool.assets.length > 0) {
+    countBadge.textContent = this.mediaPool.slideshowMode
+      ? `${this.mediaPool.slides.length} Slides`
+      : `${this.mediaPool.assets.length} Loaded`;
+
+    if ((this.mediaPool.slideshowMode ? this.mediaPool.slides.length : this.mediaPool.assets.length) > 0) {
       countBadge.className = 'badge-success';
     }
 
-    this.mediaPool.assets.forEach((asset, idx) => {
+    const displayAssets = this.mediaPool.slideshowMode && this.mediaPool.slides.length > 0
+      ? this.mediaPool.slides
+      : this.mediaPool.assets;
+
+    displayAssets.forEach((asset, idx) => {
       // Step 1 Pool Card
       const item = document.createElement('div');
-      item.className = `media-pool-item ${asset.id === this.mediaPool.activeAssetId ? 'active' : ''}`;
+      const isCurrentActive = this.mediaPool.slideshowMode
+        ? idx === this.mediaPool.currentSlideIndex
+        : asset.id === this.mediaPool.activeAssetId;
+
+      item.className = `media-pool-item ${isCurrentActive ? 'active' : ''}`;
       item.innerHTML = `
         <img src="${asset.thumbnail}" class="w-full h-full object-cover">
         <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition p-1 text-center">
           <span class="text-[10px] text-white font-medium truncate">${asset.name}</span>
         </div>
-        <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-mono text-white font-bold">${idx + 1}</span>
+        <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-mono text-white font-bold">${this.mediaPool.slideshowMode ? 'S' + (idx + 1) : idx + 1}</span>
       `;
       item.addEventListener('click', () => {
-        this.mediaPool.setActiveAsset(asset.id);
+        if (this.mediaPool.slideshowMode) {
+          this.mediaPool.setSlideIndex(idx);
+        } else {
+          this.mediaPool.setActiveAsset(asset.id);
+        }
         this._renderBgPool();
       });
       list.appendChild(item);
 
-      // Step 3 Style Preview Strip
+      // Step 3 Selector Strip
       if (strip) {
-        const mini = document.createElement('div');
-        mini.className = `w-14 h-9 rounded-lg overflow-hidden border-2 cursor-pointer flex-shrink-0 relative ${asset.id === this.mediaPool.activeAssetId ? 'border-brand-500 shadow-md' : 'border-slate-700 opacity-70'}`;
-        mini.innerHTML = `<img src="${asset.thumbnail}" class="w-full h-full object-cover">`;
-        mini.addEventListener('click', () => {
-          this.mediaPool.setActiveAsset(asset.id);
+        const stripItem = document.createElement('button');
+        stripItem.type = 'button';
+        stripItem.className = `w-14 h-9 rounded-lg overflow-hidden border-2 transition flex-shrink-0 relative ${isCurrentActive ? 'border-brand-500 ring-2 ring-brand-500/30' : 'border-slate-700 opacity-60 hover:opacity-100'}`;
+        stripItem.innerHTML = `<img src="${asset.thumbnail}" class="w-full h-full object-cover">`;
+        stripItem.addEventListener('click', () => {
+          if (this.mediaPool.slideshowMode) {
+            this.mediaPool.setSlideIndex(idx);
+          } else {
+            this.mediaPool.setActiveAsset(asset.id);
+          }
           this._renderBgPool();
+          this._syncStylePreview();
         });
-        strip.appendChild(mini);
+        strip.appendChild(stripItem);
       }
 
-      // Step 4 Studio Switcher Strip
+      // Step 4 Studio Switcher
       if (switcher) {
         const studioBtn = document.createElement('button');
-        studioBtn.className = `flex-shrink-0 flex items-center gap-2 p-1.5 rounded-xl border transition ${asset.id === this.mediaPool.activeAssetId ? 'bg-brand-500/20 border-brand-500 text-white' : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700'}`;
+        studioBtn.type = 'button';
+        studioBtn.className = `flex-shrink-0 flex items-center gap-2 p-1.5 rounded-xl border transition cursor-pointer ${isCurrentActive ? 'bg-brand-500/20 border-brand-500 text-white' : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700'}`;
         studioBtn.innerHTML = `
           <div class="w-10 h-7 rounded overflow-hidden relative">
             <img src="${asset.thumbnail}" class="w-full h-full object-cover">
-            <span class="absolute bottom-0 right-0 px-1 rounded-tl bg-black/80 text-[8px] font-mono text-white font-bold">${idx + 1}</span>
+            <span class="absolute bottom-0 right-0 px-1 rounded-tl bg-black/80 text-[8px] font-mono text-white font-bold">${this.mediaPool.slideshowMode ? 'S' + (idx + 1) : idx + 1}</span>
           </div>
           <span class="text-xs font-medium truncate max-w-[90px] pr-1">${asset.name}</span>
         `;
         studioBtn.addEventListener('click', () => {
-          this.mediaPool.setActiveAsset(asset.id);
+          if (this.mediaPool.slideshowMode) {
+            this.mediaPool.setSlideIndex(idx);
+          } else {
+            this.mediaPool.setActiveAsset(asset.id);
+          }
           this._renderBgPool();
-          this.showToast(`Switched to Background [${idx + 1}]: ${asset.name}`, 'info');
+          this.showToast(`Switched to: ${asset.name}`, 'info', 1000);
         });
         switcher.appendChild(studioBtn);
       }
     });
+
+    if (window.lucide) window.lucide.createIcons();
   }
 
   _updateLyricsSummary() {
@@ -915,10 +1013,18 @@ class App {
   // 5. LIVE RECORDING STUDIO
   // ==========================================
   _setupStudioControls() {
-    // Big Tap / Advance Cue Button
+    // Big Tap / Advance Cue Button (Single mode)
     const fireBtn = document.getElementById('btn-fire-cue');
     fireBtn?.addEventListener('click', () => {
       this.advanceCue();
+    });
+
+    // Split Advance Buttons (Slideshow mode)
+    document.getElementById('btn-split-advance-lyric')?.addEventListener('click', () => {
+      this.advanceCue();
+    });
+    document.getElementById('btn-split-advance-both')?.addEventListener('click', () => {
+      this.advanceCueAndSlide();
     });
 
     // Prev Cue Button
@@ -1239,6 +1345,48 @@ class App {
     }
   }
 
+  advanceCueAndSlide() {
+    this.advanceCue();
+    if (this.mediaPool.slideshowMode) {
+      const slide = this.mediaPool.advanceSlide();
+      if (slide) {
+        this._updateSlideTelemetryUI();
+      }
+    }
+  }
+
+  _updateSlideTelemetryUI() {
+    const indicator = document.getElementById('studio-slide-indicator');
+    const container = document.getElementById('studio-slide-telemetry');
+    const singleBtn = document.getElementById('btn-fire-cue');
+    const splitContainer = document.getElementById('studio-slideshow-trigger-split');
+
+    if (this.mediaPool.slideshowMode && this.mediaPool.slides.length > 0) {
+      if (container) {
+        container.classList.remove('hidden');
+        container.classList.add('flex');
+      }
+      if (singleBtn) singleBtn.classList.add('hidden');
+      if (splitContainer) {
+        splitContainer.classList.remove('hidden');
+        splitContainer.classList.add('grid');
+      }
+      if (indicator) {
+        indicator.textContent = `Slide ${this.mediaPool.currentSlideIndex + 1} / ${this.mediaPool.slides.length}`;
+      }
+    } else {
+      if (container) {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+      }
+      if (singleBtn) singleBtn.classList.remove('hidden');
+      if (splitContainer) {
+        splitContainer.classList.add('hidden');
+        splitContainer.classList.remove('grid');
+      }
+    }
+  }
+
   // ==========================================
   // 6. GLOBAL SHORTCUTS
   // ==========================================
@@ -1257,11 +1405,15 @@ class App {
         return;
       }
 
-      // Spacebar: Advance Cue
+      // Spacebar: Advance Cue (or Advance Cue & Slide if Left Shift is held)
       if (e.code === 'Space') {
         e.preventDefault();
         if (this.currentStep === 4) {
-          this.advanceCue();
+          if (e.shiftKey && this.mediaPool.slideshowMode) {
+            this.advanceCueAndSlide();
+          } else {
+            this.advanceCue();
+          }
         }
       }
 
@@ -2178,7 +2330,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.13').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.14').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

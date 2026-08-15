@@ -51,7 +51,7 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
 
-  <link rel="stylesheet" href="style.css?v=1.0.13">
+  <link rel="stylesheet" href="style.css?v=1.0.14">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -65,7 +65,7 @@
         <div class="flex items-center">
           <span class="text-xl font-display font-extrabold bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">LyricFlow Studio</span>
           <span class="ml-2 text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 hidden sm:inline-block">MP4 Generator</span>
-          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.13</span>
+          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.14</span>
         </div>
       </div>
 
@@ -196,35 +196,77 @@
           </div>
         </div>
 
-        <!-- 2. Background Media Pool Card -->
+        <!-- 2. Background Media Pool & Slideshow Card -->
         <div class="card p-5 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-lg bg-pink-500/10 text-pink-400 flex items-center justify-center">
-                  <i data-lucide="film" class="w-5 h-5"></i>
+                  <i data-lucide="images" class="w-5 h-5"></i>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-white text-base">Background Pool</h3>
-                  <p class="text-xs text-slate-400">Videos (MP4/WebM) & Images</p>
+                  <h3 class="font-semibold text-white text-base">Background Media</h3>
+                  <p class="text-xs text-slate-400">Videos, Images, or Slideshow</p>
                 </div>
               </div>
               <span id="bg-pool-count" class="badge-neutral">0 Loaded</span>
             </div>
 
-            <!-- Background Drop Zone -->
-            <label for="bg-input" class="upload-dropzone group">
-              <input type="file" id="bg-input" accept="image/*,video/mp4,video/webm" multiple class="hidden">
-              <div class="flex flex-col items-center justify-center text-center p-4">
-                <i data-lucide="images" class="w-8 h-8 text-slate-400 group-hover:text-pink-400 transition-colors mb-2"></i>
-                <p class="text-sm font-medium text-slate-200 group-hover:text-white">Add Background Media</p>
-                <p class="text-xs text-slate-500 mt-1">Multi-select images or looping videos</p>
+            <!-- Mode Selection Tabs: Video/Pool vs Image Slideshow -->
+            <div class="flex rounded-lg bg-slate-950 p-1 border border-slate-800 mb-3 text-xs">
+              <button type="button" id="tab-mode-video-pool" class="flex-1 py-1.5 px-2 rounded font-medium bg-brand-600 text-white transition text-center cursor-pointer">
+                Videos / Pool
+              </button>
+              <button type="button" id="tab-mode-slideshow" class="flex-1 py-1.5 px-2 rounded font-medium text-slate-400 hover:text-white transition text-center cursor-pointer">
+                Image Slideshow
+              </button>
+            </div>
+
+            <!-- Mode A: Background Videos / Single Media Drop Zone -->
+            <div id="dropzone-video-pool-container">
+              <label for="bg-input" class="upload-dropzone group">
+                <input type="file" id="bg-input" accept="image/*,video/mp4,video/webm" multiple class="hidden">
+                <div class="flex flex-col items-center justify-center text-center p-3">
+                  <i data-lucide="film" class="w-7 h-7 text-slate-400 group-hover:text-pink-400 transition-colors mb-1.5"></i>
+                  <p class="text-xs font-semibold text-slate-200 group-hover:text-white">Add Background Videos / Images</p>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Multi-select looping videos or backdrops</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Mode B: Image Slideshow Folder Drop Zone -->
+            <div id="dropzone-slideshow-container" class="hidden space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <label for="slideshow-folder-input" class="upload-dropzone group p-3 cursor-pointer">
+                  <input type="file" id="slideshow-folder-input" webkitdirectory directory multiple class="hidden">
+                  <div class="flex flex-col items-center text-center">
+                    <i data-lucide="folder-archive" class="w-6 h-6 text-brand-400 mb-1"></i>
+                    <span class="text-xs font-semibold text-white">Select Folder</span>
+                    <span class="text-[10px] text-slate-400">All images in folder</span>
+                  </div>
+                </label>
+
+                <label for="slideshow-files-input" class="upload-dropzone group p-3 cursor-pointer">
+                  <input type="file" id="slideshow-files-input" accept="image/*" multiple class="hidden">
+                  <div class="flex flex-col items-center text-center">
+                    <i data-lucide="file-plus-2" class="w-6 h-6 text-pink-400 mb-1"></i>
+                    <span class="text-xs font-semibold text-white">Select Files</span>
+                    <span class="text-[10px] text-slate-400">Multi-select images</span>
+                  </div>
+                </label>
               </div>
-            </label>
+              <div id="slideshow-status-bar" class="hidden items-center justify-between bg-brand-500/10 border border-brand-500/30 rounded-lg px-2.5 py-1.5 text-xs text-brand-300">
+                <span class="font-medium flex items-center gap-1.5">
+                  <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span id="slideshow-status-text">Slideshow Active (0 slides)</span>
+                </span>
+                <button type="button" id="btn-clear-slideshow" class="text-[11px] text-red-400 hover:text-red-300 underline cursor-pointer">Clear</button>
+              </div>
+            </div>
           </div>
 
           <!-- Background Thumbnails Pool -->
-          <div id="bg-pool-list" class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
+          <div id="bg-pool-list" class="mt-3 pt-3 border-t border-slate-800 grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
             <!-- Dynamically populated thumbnails -->
           </div>
         </div>
@@ -894,14 +936,38 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
         <!-- Right: Studio Live Trigger Panel (4 cols) -->
         <div class="lg:col-span-4 space-y-4">
           
-          <!-- BIG TRIGGER BUTTON (for tapping) -->
-          <button id="btn-fire-cue" class="w-full p-8 rounded-2xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-extrabold text-xl shadow-2xl shadow-brand-500/30 active:scale-[0.98] transition border-2 border-brand-400/40 flex flex-col items-center justify-center gap-2 group cursor-pointer">
-            <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <i data-lucide="fast-forward" class="w-7 h-7 text-white"></i>
+          <!-- TRIGGER BUTTONS CONTAINER -->
+          <div id="studio-trigger-container" class="space-y-2">
+            <!-- Normal Single Trigger (When slideshow mode is OFF) -->
+            <button id="btn-fire-cue" class="w-full p-8 rounded-2xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-extrabold text-xl shadow-2xl shadow-brand-500/30 active:scale-[0.98] transition border-2 border-brand-400/40 flex flex-col items-center justify-center gap-2 group cursor-pointer">
+              <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i data-lucide="fast-forward" class="w-7 h-7 text-white"></i>
+              </div>
+              <span class="tracking-wide">ADVANCE LYRIC CUE</span>
+              <span class="text-xs font-normal text-indigo-200 bg-black/30 px-3 py-1 rounded-full font-mono">Or Hit [SPACEBAR]</span>
+            </button>
+
+            <!-- Split Triggers (When slideshow mode is ON) -->
+            <div id="studio-slideshow-trigger-split" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Advance Lyric Only -->
+              <button type="button" id="btn-split-advance-lyric" class="p-5 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-display font-bold text-base shadow-xl active:scale-[0.98] transition border border-slate-700 flex flex-col items-center justify-center gap-1.5 group cursor-pointer">
+                <div class="w-10 h-10 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i data-lucide="type" class="w-5 h-5"></i>
+                </div>
+                <span class="tracking-wide text-xs sm:text-sm font-bold text-center">ADVANCE LYRIC</span>
+                <span class="text-[10px] font-mono text-slate-400 bg-black/40 px-2 py-0.5 rounded-full">[SPACEBAR]</span>
+              </button>
+
+              <!-- Advance Lyric & Slide -->
+              <button type="button" id="btn-split-advance-both" class="p-5 rounded-2xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-bold text-base shadow-xl shadow-brand-500/25 active:scale-[0.98] transition border-2 border-brand-400/50 flex flex-col items-center justify-center gap-1.5 group cursor-pointer">
+                <div class="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i data-lucide="images" class="w-5 h-5"></i>
+                </div>
+                <span class="tracking-wide text-xs sm:text-sm font-extrabold text-center">ADVANCE LYRIC & SLIDE</span>
+                <span class="text-[10px] font-mono text-indigo-200 bg-black/40 px-2 py-0.5 rounded-full">[SHIFT + SPACE]</span>
+              </button>
             </div>
-            <span class="tracking-wide">ADVANCE LYRIC CUE</span>
-            <span class="text-xs font-normal text-indigo-200 bg-black/30 px-3 py-1 rounded-full font-mono">Or Hit [SPACEBAR]</span>
-          </button>
+          </div>
 
           <!-- Cue Navigation Controls -->
           <div class="grid grid-cols-2 gap-2">
@@ -913,6 +979,15 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
               <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
               <span>Blank Cue [B]</span>
             </button>
+          </div>
+
+          <!-- Active Slide Indicator (Visible in Slideshow mode) -->
+          <div id="studio-slide-telemetry" class="hidden card p-3 bg-slate-900/90 border border-brand-500/30 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="image" class="w-4 h-4 text-brand-400"></i>
+              <span class="text-xs font-semibold text-slate-200">Current Background Slide:</span>
+            </div>
+            <span id="studio-slide-indicator" class="text-xs font-mono font-bold text-brand-300 bg-brand-500/20 px-2 py-0.5 rounded border border-brand-500/30">Slide 1 / 1</span>
           </div>
 
           <!-- Active & Upcoming Cue Stream Telemetry -->
@@ -1076,7 +1151,7 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
       <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed Version</span>
-          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.13</span>
+          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.14</span>
         </div>
         <div class="flex items-center justify-between text-xs text-slate-400">
           <span>Running Environment:</span>
@@ -1214,7 +1289,7 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.13"></script>
+  <script type="module" src="app.js?v=1.0.14"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {
