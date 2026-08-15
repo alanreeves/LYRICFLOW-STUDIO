@@ -267,7 +267,8 @@ export class CanvasRenderer {
   _renderText(ctx, rawText, posX, posY, canvasW, canvasH) {
     ctx.save();
 
-    let textToDraw = rawText;
+    // Automatically strip punctuation marks when displaying cue on screen
+    let textToDraw = this._stripPunctuation(rawText);
     if (this.style.isUppercase) {
       textToDraw = textToDraw.toUpperCase();
     }
@@ -400,8 +401,25 @@ export class CanvasRenderer {
     ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
     ctx.lineTo(x + radius, y + height);
     ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.lineTo(x + radius, y);
+    ctx.quadraticCurveTo(x, y, x, y + radius);
     ctx.closePath();
+  }
+
+  _stripPunctuation(text) {
+    if (!text) return '';
+    return text
+      .split('\n')
+      .map(line => {
+        return line
+          // Strip punctuation marks: commas, periods, exclamations, questions, colons, semicolons, quotes, dashes, brackets, symbols
+          .replace(/[.,\/#!$%\^&\*;:{}=\_`~()?"“”«»–—…\[\]]/g, '')
+          // Strip leading/trailing/isolated apostrophes and quotes while preserving contractions (e.g. don't)
+          .replace(/(^|\s)['’]|['’](\s|$)/g, '$1$2')
+          .replace(/[ \t]+/g, ' ')
+          .trim();
+      })
+      .filter(l => l.length > 0)
+      .join('\n');
   }
 }
