@@ -48,7 +48,7 @@
   <!-- FFmpeg.wasm for Browser-Side MP4 Generation -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=1.0.5">
+  <link rel="stylesheet" href="style.css?v=1.0.6">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -62,7 +62,7 @@
         <div class="flex items-center">
           <span class="text-xl font-display font-extrabold bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">LyricFlow Studio</span>
           <span class="ml-2 text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 hidden sm:inline-block">MP4 Generator</span>
-          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.5</span>
+          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.6</span>
         </div>
       </div>
 
@@ -94,7 +94,7 @@
         </button>
       </nav>
 
-      <div class="flex items-center space-x-2 sm:space-x-3">
+      <div class="flex items-center space-x-2 sm:space-x-2.5">
         <!-- PWA Install Button (shown when available on first visit / installable) -->
         <button id="btn-pwa-install" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white shadow-lg shadow-brand-500/25 border border-brand-400/30 transition flex items-center gap-1.5 cursor-pointer animate-pulse" title="Install LyricFlow Studio as PWA App">
           <i data-lucide="download" class="w-3.5 h-3.5"></i>
@@ -102,17 +102,29 @@
           <span class="sm:hidden">Install</span>
         </button>
 
-        <button id="btn-load-demo" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Load sample audio, video background, and lyrics">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-400"></i>
-          <span class="hidden sm:inline">Load Demo</span>
+        <!-- Save Settings / Project -->
+        <button id="btn-save-project" class="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Save all recording settings & details">
+          <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span class="hidden sm:inline">Save</span>
         </button>
 
-        <button id="btn-open-settings" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Settings, Updates & Reload">
+        <!-- Reload Saved Settings / Project -->
+        <button id="btn-load-project" class="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Reload saved settings & ready for live studio session">
+          <i data-lucide="folder-open" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span class="hidden sm:inline">Reload</span>
+        </button>
+
+        <button id="btn-load-demo" class="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Load sample audio, video background, and lyrics">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span class="hidden sm:inline">Demo</span>
+        </button>
+
+        <button id="btn-open-settings" class="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Settings, Updates & Reload">
           <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-400"></i>
           <span class="hidden sm:inline">Settings</span>
         </button>
 
-        <button id="btn-reset-all" class="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800/50 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-800 hover:border-red-900/50 transition flex items-center gap-1.5 cursor-pointer" title="Clear all project state">
+        <button id="btn-reset-all" class="text-xs font-medium px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-800/50 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-800 hover:border-red-900/50 transition flex items-center gap-1.5 cursor-pointer" title="Clear all project state">
           <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
           <span class="hidden sm:inline">Reset</span>
         </button>
@@ -698,10 +710,20 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center flex-wrap gap-2 sm:gap-3">
+          <button id="btn-studio-save-session" class="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer" title="Save all recording details & settings">
+            <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span class="hidden sm:inline">Save Session</span>
+            <span class="sm:hidden">Save</span>
+          </button>
+          <button id="btn-studio-reload-session" class="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer" title="Reload saved session ready for another live recording">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span class="hidden sm:inline">Reload Session</span>
+            <span class="sm:hidden">Reload</span>
+          </button>
           <button id="step-4-prev-btn" class="btn-secondary text-xs flex items-center gap-1.5">
             <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-            <span>Adjust Styles</span>
+            <span>Styles</span>
           </button>
           <button id="btn-toggle-record" class="btn-rec flex items-center gap-2">
             <i data-lucide="circle-dot" class="w-5 h-5"></i>
@@ -981,7 +1003,7 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
       <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed Version</span>
-          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.5</span>
+          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.6</span>
         </div>
         <div class="flex items-center justify-between text-xs text-slate-400">
           <span>Running Environment:</span>
@@ -992,6 +1014,58 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
           <span id="settings-sw-badge" class="font-medium text-emerald-400 flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Active & Caching
           </span>
+        </div>
+      </div>
+
+      <!-- Project Presets & Recording Data -->
+      <div class="space-y-3">
+        <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Project Presets & Sessions</h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <!-- Save to Browser Storage -->
+          <button id="btn-settings-save-project" class="flex items-center gap-3 p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500/50 transition cursor-pointer text-left">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <i data-lucide="save" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-white">Save Project</div>
+              <div class="text-[11px] text-slate-400 truncate">Save session to local storage</div>
+            </div>
+          </button>
+
+          <!-- Reload Saved Project -->
+          <button id="btn-settings-load-project" class="flex items-center gap-3 p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 transition cursor-pointer text-left">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+              <i data-lucide="folder-open" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-white">Reload Project</div>
+              <div class="text-[11px] text-slate-400 truncate">Restore saved session fresh</div>
+            </div>
+          </button>
+
+          <!-- Export Project JSON -->
+          <button id="btn-settings-export-json" class="flex items-center gap-3 p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/50 transition cursor-pointer text-left">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
+              <i data-lucide="file-down" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-white">Export .JSON File</div>
+              <div class="text-[11px] text-slate-400 truncate">Download backup to disk</div>
+            </div>
+          </button>
+
+          <!-- Import Project JSON -->
+          <button id="btn-settings-import-json" class="flex items-center gap-3 p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/50 transition cursor-pointer text-left">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
+              <i data-lucide="file-up" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-white">Import .JSON File</div>
+              <div class="text-[11px] text-slate-400 truncate">Load project from disk</div>
+            </div>
+          </button>
+          <input type="file" id="project-file-input" accept=".json,application/json" class="hidden">
         </div>
       </div>
 
@@ -1089,7 +1163,7 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.5"></script>
+  <script type="module" src="app.js?v=1.0.6"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

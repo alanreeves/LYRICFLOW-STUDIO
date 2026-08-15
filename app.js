@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.5';
+export const APP_VERSION = '1.0.6';
 
 class App {
   constructor() {
@@ -46,6 +46,7 @@ class App {
     this._setupGlobalShortcuts();
     this._setupDemoLoader();
     this._setupVideoSpeedControls();
+    this._setupProjectPersistenceControls();
     this._setupPwaInstall();
     this._setupSettingsMenu();
     this._setupServiceWorker();
@@ -677,48 +678,14 @@ class App {
     const tapControls = document.getElementById('tap-pos-controls');
     const tapOverlay = document.getElementById('tap-points-overlay');
     const tapHint = document.getElementById('preview-tap-hint');
-    const tapPointsCount = document.getElementById('tap-points-count');
-    const tapPointsList = document.getElementById('tap-points-list');
     const clearTapBtn = document.getElementById('btn-clear-tap-points');
     const testNextBtn = document.getElementById('btn-test-next-pos');
-
-    const updateTapPointsUI = () => {
-      const points = this.stylePreviewRenderer.getTapPoints();
-      if (tapPointsCount) tapPointsCount.textContent = `${points.length} / 6`;
-      
-      // Update Markers on Overlay
-      if (tapOverlay) {
-        tapOverlay.innerHTML = '';
-        points.forEach((pt, idx) => {
-          const pin = document.createElement('div');
-          pin.className = 'tap-point-marker';
-          pin.style.left = `${pt.x * 100}%`;
-          pin.style.top = `${pt.y * 100}%`;
-          pin.textContent = `${idx + 1}`;
-          tapOverlay.appendChild(pin);
-        });
-      }
-
-      // Update Points Badges List
-      if (tapPointsList) {
-        if (points.length === 0) {
-          tapPointsList.innerHTML = `<span class="text-[11px] text-slate-500 italic">No tap points set yet. Click preview screen.</span>`;
-        } else {
-          tapPointsList.innerHTML = points.map((pt, idx) => `
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[10px] font-mono font-bold">
-              <span class="w-3.5 h-3.5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[9px]">${idx + 1}</span>
-              ${Math.round(pt.x * 100)}%, ${Math.round(pt.y * 100)}%
-            </span>
-          `).join('');
-        }
-      }
-    };
 
     posFixedBtn?.addEventListener('click', () => {
       posFixedBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition';
       posTapBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition';
-      fixedControls.classList.remove('hidden');
-      tapControls.classList.add('hidden');
+      fixedControls?.classList.remove('hidden');
+      tapControls?.classList.add('hidden');
       if (tapHint) tapHint.classList.add('hidden');
       this._updateStyle({ positionMode: 'fixed' });
       this._syncStylePreview();
@@ -727,11 +694,11 @@ class App {
     posTapBtn?.addEventListener('click', () => {
       posTapBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition';
       posFixedBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition';
-      fixedControls.classList.add('hidden');
-      tapControls.classList.remove('hidden');
+      fixedControls?.classList.add('hidden');
+      tapControls?.classList.remove('hidden');
       if (tapHint) tapHint.classList.remove('hidden');
       this._updateStyle({ positionMode: 'custom_tap' });
-      updateTapPointsUI();
+      this._updateTapPointsOverlayUI();
       this._syncStylePreview();
     });
 
@@ -751,7 +718,7 @@ class App {
 
       this.stylePreviewRenderer.addTapPoint(normX, normY);
       this.renderer.addTapPoint(normX, normY);
-      updateTapPointsUI();
+      this._updateTapPointsOverlayUI();
       
       // Auto-switch to tap mode if not already
       posTapBtn?.click();
@@ -762,7 +729,7 @@ class App {
     clearTapBtn?.addEventListener('click', () => {
       this.stylePreviewRenderer.clearTapPoints();
       this.renderer.clearTapPoints();
-      updateTapPointsUI();
+      this._updateTapPointsOverlayUI();
       this._syncStylePreview();
       this.showToast('Cleared all tap landing points', 'info');
     });
@@ -1150,6 +1117,13 @@ class App {
     window.addEventListener('keydown', (e) => {
       // Ignore if user is currently typing in an input or textarea
       const target = e.target;
+      // Ctrl+S or Cmd+S: Quick Save Project
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        this.saveProjectState(true);
+        return;
+      }
+
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
       }
@@ -1577,12 +1551,443 @@ class App {
       updateSpeedUI(parseFloat(e.target.value), true);
     });
 
-    presetBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const speed = parseFloat(btn.dataset.speed);
-        updateSpeedUI(speed, true);
+  _updateTapPointsOverlayUI() {
+    const tapOverlay = document.getElementById('tap-points-overlay');
+    const tapPointsCount = document.getElementById('tap-points-count');
+    const tapPointsList = document.getElementById('tap-points-list');
+    const points = this.stylePreviewRenderer ? this.stylePreviewRenderer.getTapPoints() : [];
+
+    if (tapPointsCount) tapPointsCount.textContent = `${points.length} / 6`;
+
+    if (tapOverlay) {
+      tapOverlay.innerHTML = '';
+      points.forEach((pt, idx) => {
+        const pin = document.createElement('div');
+        pin.className = 'tap-point-marker';
+        pin.style.left = `${pt.x * 100}%`;
+        pin.style.top = `${pt.y * 100}%`;
+        pin.textContent = `${idx + 1}`;
+        tapOverlay.appendChild(pin);
       });
+    }
+
+    if (tapPointsList) {
+      if (points.length === 0) {
+        tapPointsList.innerHTML = `<span class="text-[11px] text-slate-500 italic">No tap points set yet. Click preview screen.</span>`;
+      } else {
+        tapPointsList.innerHTML = points.map((pt, idx) => `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[10px] font-mono font-bold">
+            <span class="w-3.5 h-3.5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[9px]">${idx + 1}</span>
+            ${Math.round(pt.x * 100)}%, ${Math.round(pt.y * 100)}%
+          </span>
+        `).join('');
+      }
+    }
+  }
+
+  // ==========================================
+  // 14. PROJECT & RECORDING SESSION PERSISTENCE
+  // ==========================================
+  _setupProjectPersistenceControls() {
+    // Header Buttons
+    document.getElementById('btn-save-project')?.addEventListener('click', () => {
+      this.saveProjectState(true);
     });
+
+    document.getElementById('btn-load-project')?.addEventListener('click', () => {
+      this.loadProjectState(null, true);
+    });
+
+    // Step 4 Live Studio Toolbar Buttons
+    document.getElementById('btn-studio-save-session')?.addEventListener('click', () => {
+      this.saveProjectState(true);
+    });
+
+    document.getElementById('btn-studio-reload-session')?.addEventListener('click', () => {
+      this.loadProjectState(null, true);
+    });
+
+    // Settings Modal Buttons
+    document.getElementById('btn-settings-save-project')?.addEventListener('click', () => {
+      this.saveProjectState(true);
+      document.getElementById('settings-modal')?.classList.add('hidden');
+    });
+
+    document.getElementById('btn-settings-load-project')?.addEventListener('click', () => {
+      this.loadProjectState(null, true);
+      document.getElementById('settings-modal')?.classList.add('hidden');
+    });
+
+    document.getElementById('btn-settings-export-json')?.addEventListener('click', () => {
+      this.exportProjectJSON();
+    });
+
+    const fileInput = document.getElementById('project-file-input');
+    document.getElementById('btn-settings-import-json')?.addEventListener('click', () => {
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    });
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        this.importProjectJSON(file);
+        document.getElementById('settings-modal')?.classList.add('hidden');
+      }
+    });
+  }
+
+  saveProjectState(showNotification = true) {
+    const limitMode = document.getElementById('recording-limit-mode')?.value || 'audio_end';
+    const customSec = parseInt(document.getElementById('recording-custom-sec-input')?.value, 10) || 30;
+
+    const projectData = {
+      app: 'LyricFlow Studio',
+      version: APP_VERSION,
+      savedAt: new Date().toISOString(),
+      lyrics: {
+        rawText: this.lyrics.rawText || '',
+        delimitationMode: this.lyrics.delimitationMode || 'line-by-line',
+        cues: this.lyrics.cues || []
+      },
+      style: {
+        aspectRatio: this.renderer.aspectRatio,
+        fontFamily: this.renderer.style.fontFamily,
+        fontWeight: this.renderer.style.fontWeight,
+        isItalic: this.renderer.style.isItalic,
+        isUppercase: this.renderer.style.isUppercase,
+        fontSize: this.renderer.style.fontSize,
+        maxWidthPercent: this.renderer.style.maxWidthPercent,
+        textColor: this.renderer.style.textColor,
+        strokeColor: this.renderer.style.strokeColor,
+        strokeWidth: this.renderer.style.strokeWidth,
+        shadowColor: this.renderer.style.shadowColor,
+        shadowBlur: this.renderer.style.shadowBlur,
+        boxColor: this.renderer.style.boxColor,
+        boxOpacity: this.renderer.style.boxOpacity,
+        positionMode: this.renderer.style.positionMode,
+        verticalAlign: this.renderer.style.verticalAlign,
+        textAlign: this.renderer.style.textAlign,
+        tapPoints: this.renderer.getTapPoints()
+      },
+      studio: {
+        videoSpeed: this.mediaPool.getVideoSpeed(),
+        recordingLimitMode: limitMode,
+        recordingCustomSec: customSec,
+        customMaxDuration: this.customMaxDuration,
+        activeBgId: this.mediaPool.activeAssetId
+      }
+    };
+
+    try {
+      localStorage.setItem('lyricflow_saved_project', JSON.stringify(projectData));
+      if (showNotification) {
+        this.showToast('Recording session & project settings saved!', 'success', 2500);
+      }
+      return projectData;
+    } catch (e) {
+      console.error('Error saving project state:', e);
+      this.showToast('Could not save project state to storage', 'error');
+      return null;
+    }
+  }
+
+  loadProjectState(projectData = null, showNotification = true) {
+    let data = projectData;
+    if (!data) {
+      try {
+        const raw = localStorage.getItem('lyricflow_saved_project');
+        if (raw) data = JSON.parse(raw);
+      } catch (e) {
+        console.error('Error loading project state:', e);
+      }
+    }
+
+    if (!data) {
+      this.showToast('No saved project found. Click "Save" first to save your recording settings.', 'warning', 3500);
+      return false;
+    }
+
+    // 1. Restore Lyrics
+    if (data.lyrics) {
+      const rawInput = document.getElementById('raw-lyrics-input');
+      if (rawInput) rawInput.value = data.lyrics.rawText || '';
+      
+      this.lyrics.rawText = data.lyrics.rawText || '';
+      this.lyrics.delimitationMode = data.lyrics.delimitationMode || 'line-by-line';
+      if (data.lyrics.cues && Array.isArray(data.lyrics.cues) && data.lyrics.cues.length > 0) {
+        this.lyrics.cues = data.lyrics.cues;
+      } else {
+        this.lyrics.parseRawText(data.lyrics.rawText || '');
+      }
+
+      document.querySelectorAll('.btn-chunk-rule').forEach((btn) => {
+        btn.classList.toggle('active-chunk-rule', btn.getAttribute('data-mode') === this.lyrics.delimitationMode);
+      });
+
+      this._updateCueListUI();
+      this._updateLyricsSummary();
+    }
+
+    // 2. Restore Style & Tap Points
+    if (data.style) {
+      this._applyStyleToUI(data.style);
+    }
+
+    // 3. Restore Studio Settings
+    if (data.studio) {
+      // Background speed
+      if (data.studio.videoSpeed !== undefined) {
+        const speed = parseFloat(data.studio.videoSpeed);
+        this.mediaPool.setVideoSpeed(speed);
+        const studioSlider = document.getElementById('studio-video-speed-slider');
+        const studioVal = document.getElementById('studio-video-speed-val');
+        if (studioSlider) studioSlider.value = speed;
+        if (studioVal) {
+          if (Math.abs(speed - 0.125) < 0.005) studioVal.textContent = '0.125x (1/8 speed)';
+          else if (Math.abs(speed - 0.25) < 0.005) studioVal.textContent = '0.25x (1/4 speed)';
+          else if (Math.abs(speed - 0.5) < 0.005) studioVal.textContent = '0.50x (1/2 speed)';
+          else if (Math.abs(speed - 0.75) < 0.005) studioVal.textContent = '0.75x (3/4 speed)';
+          else if (Math.abs(speed - 1.0) < 0.005) studioVal.textContent = '1.00x (Normal speed)';
+          else studioVal.textContent = `${speed.toFixed(2)}x`;
+        }
+
+        document.querySelectorAll('.btn-studio-speed-preset').forEach((btn) => {
+          const btnSpeed = parseFloat(btn.dataset.speed);
+          if (Math.abs(btnSpeed - speed) < 0.02) {
+            btn.classList.add('active', 'bg-brand-600', 'text-white', 'border-brand-500');
+            btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+          } else {
+            btn.classList.remove('active', 'bg-brand-600', 'text-white', 'border-brand-500');
+            btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+          }
+        });
+      }
+
+      // Auto-stop limit
+      const limitSelect = document.getElementById('recording-limit-mode');
+      const customSecContainer = document.getElementById('recording-custom-sec-container');
+      const customSecInput = document.getElementById('recording-custom-sec-input');
+      
+      if (limitSelect && data.studio.recordingLimitMode) {
+        limitSelect.value = data.studio.recordingLimitMode;
+        if (data.studio.recordingLimitMode === 'custom') {
+          if (customSecContainer) {
+            customSecContainer.classList.remove('hidden');
+            customSecContainer.classList.add('flex');
+          }
+          if (customSecInput && data.studio.recordingCustomSec) {
+            customSecInput.value = data.studio.recordingCustomSec;
+          }
+          this.customMaxDuration = data.studio.recordingCustomSec || 30;
+        } else if (data.studio.recordingLimitMode === 'audio_end') {
+          if (customSecContainer) {
+            customSecContainer.classList.add('hidden');
+            customSecContainer.classList.remove('flex');
+          }
+          this.customMaxDuration = null;
+        } else {
+          if (customSecContainer) {
+            customSecContainer.classList.add('hidden');
+            customSecContainer.classList.remove('flex');
+          }
+          this.customMaxDuration = parseInt(data.studio.recordingLimitMode, 10);
+        }
+      }
+
+      // Active Background
+      if (data.studio.activeBgId) {
+        this.mediaPool.setActiveAsset(data.studio.activeBgId);
+      }
+    }
+
+    // 4. Reset studio session to fresh starting point
+    this.activeCueIndex = -1;
+    this.renderer.setCue(null);
+    this._updatePrompterUI();
+    this.audio.seek(0);
+    this.audio.pause();
+
+    const timeDisplay = document.getElementById('recording-time-display');
+    if (timeDisplay) timeDisplay.textContent = '00:00.0';
+
+    // Transition smoothly to Live Studio (Step 4) ready to record
+    this._goToStep(4);
+
+    if (showNotification) {
+      this.showToast('✨ Settings reloaded fresh! Ready for your live studio session.', 'success', 3000);
+    }
+    return true;
+  }
+
+  _applyStyleToUI(style) {
+    if (!style) return;
+
+    // 1. Aspect ratio
+    if (style.aspectRatio) {
+      document.querySelectorAll('.aspect-ratio-btn').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-ratio') === style.aspectRatio);
+      });
+      this.renderer.setAspectRatio(style.aspectRatio);
+      this.stylePreviewRenderer.setAspectRatio(style.aspectRatio);
+
+      const stageWrapper = document.getElementById('master-stage-wrapper');
+      const previewWrapper = document.getElementById('style-preview-wrapper');
+      [stageWrapper, previewWrapper].forEach((el) => {
+        if (!el) return;
+        el.className = el.className.replace(/aspect-(video|square|\[9\/16\])/g, '');
+        if (style.aspectRatio === '16-9') el.classList.add('aspect-video');
+        else if (style.aspectRatio === '9-16') el.classList.add('aspect-[9/16]');
+        else if (style.aspectRatio === '1-1') el.classList.add('aspect-square');
+      });
+    }
+
+    // 2. Typography
+    const fontSelect = document.getElementById('font-family-select');
+    if (fontSelect && style.fontFamily) fontSelect.value = style.fontFamily;
+
+    const weightSelect = document.getElementById('font-weight-select');
+    if (weightSelect && style.fontWeight) weightSelect.value = style.fontWeight;
+
+    const italicBtn = document.getElementById('btn-toggle-italic');
+    if (italicBtn && style.isItalic !== undefined) {
+      italicBtn.classList.toggle('active-chunk-rule', !!style.isItalic);
+    }
+
+    const upperBtn = document.getElementById('btn-toggle-uppercase');
+    if (upperBtn && style.isUppercase !== undefined) {
+      upperBtn.classList.toggle('active-chunk-rule', !!style.isUppercase);
+    }
+
+    const fontSizeSlider = document.getElementById('font-size-slider');
+    const fontSizeVal = document.getElementById('font-size-val');
+    if (fontSizeSlider && style.fontSize) {
+      fontSizeSlider.value = style.fontSize;
+      if (fontSizeVal) fontSizeVal.textContent = `${style.fontSize}px`;
+    }
+
+    const maxWidthSlider = document.getElementById('max-width-slider');
+    const maxWidthVal = document.getElementById('max-width-val');
+    if (maxWidthSlider && style.maxWidthPercent) {
+      maxWidthSlider.value = style.maxWidthPercent;
+      if (maxWidthVal) maxWidthVal.textContent = `${style.maxWidthPercent}%`;
+    }
+
+    // 3. Colors
+    const setPicker = (pickerId, hexId, color) => {
+      const picker = document.getElementById(pickerId);
+      const hex = document.getElementById(hexId);
+      if (picker && color) picker.value = color;
+      if (hex && color) hex.textContent = color.toUpperCase();
+    };
+    if (style.textColor) setPicker('text-color-picker', 'text-color-hex', style.textColor);
+    if (style.strokeColor) setPicker('stroke-color-picker', 'stroke-color-hex', style.strokeColor);
+    if (style.shadowColor) setPicker('shadow-color-picker', 'shadow-color-hex', style.shadowColor);
+    if (style.boxColor) setPicker('box-color-picker', 'box-color-hex', style.boxColor);
+
+    const strokeWidthSlider = document.getElementById('stroke-width-slider');
+    const strokeWidthVal = document.getElementById('stroke-width-val');
+    if (strokeWidthSlider && style.strokeWidth !== undefined) {
+      strokeWidthSlider.value = style.strokeWidth;
+      if (strokeWidthVal) strokeWidthVal.textContent = `${style.strokeWidth}px`;
+    }
+
+    const boxOpacitySlider = document.getElementById('box-opacity-slider');
+    const boxOpacityVal = document.getElementById('box-opacity-val');
+    if (boxOpacitySlider && style.boxOpacity !== undefined) {
+      boxOpacitySlider.value = style.boxOpacity;
+      if (boxOpacityVal) boxOpacityVal.textContent = `${style.boxOpacity}%`;
+    }
+
+    // 4. Alignment & Position Mode
+    const posFixedBtn = document.getElementById('pos-mode-fixed');
+    const posTapBtn = document.getElementById('pos-mode-tap');
+    const fixedControls = document.getElementById('fixed-pos-controls');
+    const tapControls = document.getElementById('tap-pos-controls');
+    const tapHint = document.getElementById('preview-tap-hint');
+
+    if (style.positionMode === 'custom_tap') {
+      posTapBtn?.classList.add('bg-brand-600', 'text-white');
+      posTapBtn?.classList.remove('text-slate-400');
+      posFixedBtn?.classList.remove('bg-brand-600', 'text-white');
+      posFixedBtn?.classList.add('text-slate-400');
+      fixedControls?.classList.add('hidden');
+      tapControls?.classList.remove('hidden');
+      tapHint?.classList.remove('hidden');
+    } else {
+      posFixedBtn?.classList.add('bg-brand-600', 'text-white');
+      posFixedBtn?.classList.remove('text-slate-400');
+      posTapBtn?.classList.remove('bg-brand-600', 'text-white');
+      posTapBtn?.classList.add('text-slate-400');
+      fixedControls?.classList.remove('hidden');
+      tapControls?.classList.add('hidden');
+      tapHint?.classList.add('hidden');
+    }
+
+    if (style.verticalAlign) {
+      document.querySelectorAll('.fixed-preset-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-align') === style.verticalAlign);
+      });
+    }
+
+    if (style.textAlign) {
+      document.querySelectorAll('.text-align-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-align') === style.textAlign);
+      });
+    }
+
+    // 5. Tap Points
+    if (style.tapPoints && Array.isArray(style.tapPoints)) {
+      this.renderer.setTapPoints(style.tapPoints);
+      this.stylePreviewRenderer.setTapPoints(style.tapPoints);
+      this._updateTapPointsOverlayUI();
+    }
+
+    this._updateStyle(style);
+    this._syncStylePreview();
+  }
+
+  exportProjectJSON() {
+    const data = this.saveProjectState(false);
+    if (!data) return;
+
+    try {
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `lyricflow-project-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Project JSON backup file exported successfully!', 'success', 3000);
+    } catch (e) {
+      console.error('Export JSON error:', e);
+      this.showToast('Failed to export project JSON', 'error');
+    }
+  }
+
+  importProjectJSON(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const success = this.loadProjectState(data, true);
+        if (success) {
+          this.showToast(`Imported project from ${file.name}!`, 'success', 3000);
+        }
+      } catch (err) {
+        console.error('Error importing project file:', err);
+        this.showToast('Invalid project file format', 'error');
+      }
+    };
+    reader.readAsText(file);
   }
 
   // ==========================================
@@ -1591,7 +1996,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.5').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.6').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
