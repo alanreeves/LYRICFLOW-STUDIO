@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.11';
+export const APP_VERSION = '1.0.12';
 
 class App {
   constructor() {
@@ -235,25 +235,28 @@ class App {
 
     this.currentStep = stepNumber;
 
-    // Update Stepper Navigation in Header
-    document.querySelectorAll('.step-nav-btn').forEach((btn) => {
-      const step = parseInt(btn.getAttribute('data-step'), 10);
-      btn.classList.toggle('active', step === stepNumber);
-      btn.classList.toggle('completed', step < stepNumber);
-    });
-
-    // Update Section Views
-    document.querySelectorAll('.step-section').forEach((sec) => {
-      sec.classList.remove('active');
-    });
-
-    const targetSection = document.getElementById(`step-${stepNumber}`);
-    if (targetSection) {
-      targetSection.classList.add('active');
+    // Show/hide step views (step-view-1 through step-view-5)
+    for (let i = 1; i <= 5; i++) {
+      const view = document.getElementById(`step-view-${i}`);
+      const btn = document.getElementById(`step-btn-${i}`);
+      if (view) {
+        if (i === stepNumber) {
+          view.classList.remove('hidden');
+        } else {
+          view.classList.add('hidden');
+        }
+      }
+      if (btn) {
+        btn.classList.toggle('active', i === stepNumber);
+        btn.classList.toggle('completed', i < stepNumber);
+      }
     }
 
     // Step-specific initializations
-    if (stepNumber === 3) {
+    if (stepNumber === 2) {
+      this._updateCueListUI();
+      this._updateLyricsSummary();
+    } else if (stepNumber === 3) {
       this._syncStylePreview();
       this._startPreviewAutoAdvance();
     } else {
@@ -2175,7 +2178,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.11').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.12').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
