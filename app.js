@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.14';
+export const APP_VERSION = '1.0.15';
 
 class App {
   constructor() {
@@ -24,18 +24,19 @@ class App {
     this.audio = new AudioManager();
     this.mediaPool = new MediaPool();
     this.lyrics = new LyricsParser();
-    this.renderer = new CanvasRenderer('studio-canvas', this.mediaPool);
-    this.stylePreviewRenderer = new CanvasRenderer('style-preview-canvas', this.mediaPool);
-    this.recorder = new VideoRecorder(this.renderer.canvas, this.audio);
+
+    // Canvases
+    this.masterCanvas = document.getElementById('master-canvas');
+    this.styleCanvas = document.getElementById('style-preview-canvas');
+
+    this.renderer = new CanvasRenderer(this.masterCanvas, this.mediaPool);
+    this.stylePreviewRenderer = new CanvasRenderer(this.styleCanvas, this.mediaPool);
+    this.recorder = new VideoRecorder(this.masterCanvas, this.audio);
 
     // Sync slide indicator on slide changes
     this.mediaPool.onSlideChangeCallback = () => {
       this._updateSlideTelemetryUI();
     };
-    
-    // Canvases
-    this.masterCanvas = document.getElementById('master-canvas');
-    this.styleCanvas = document.getElementById('style-preview-canvas');
 
     // Studio State
     this.activeCueIndex = -1;
@@ -2330,7 +2331,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.14').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.15').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

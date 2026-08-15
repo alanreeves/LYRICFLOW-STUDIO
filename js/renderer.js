@@ -4,8 +4,8 @@
  */
 export class CanvasRenderer {
   constructor(canvas, mediaPool) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d', { alpha: false });
+    this.canvas = typeof canvas === 'string' ? document.getElementById(canvas) : canvas;
+    this.ctx = this.canvas ? this.canvas.getContext('2d', { alpha: false }) : null;
     this.mediaPool = mediaPool;
 
     // Aspect ratio & resolution configuration
