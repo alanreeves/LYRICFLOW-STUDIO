@@ -39,7 +39,10 @@ export class CanvasRenderer {
     this.activeCueIndex = -1;
     this.isBlank = false;
 
-    // Dynamic Position State
+    // Dynamic & Custom Tap Position State
+    this.tapPoints = []; // Array of { x: 0..1, y: 0..1 } (up to 6 points)
+    this.tapPointIndex = 0;
+
     this.currentX = this.baseWidth / 2;
     this.currentY = this.baseHeight / 2;
     this.targetX = this.baseWidth / 2;
@@ -56,6 +59,34 @@ export class CanvasRenderer {
     this.animationFrameId = null;
 
     this.startLoop();
+  }
+
+  setTapPoints(points) {
+    this.tapPoints = (points || []).slice(0, 6).map(p => ({
+      x: Math.max(0.05, Math.min(0.95, p.x)),
+      y: Math.max(0.05, Math.min(0.95, p.y))
+    }));
+    this.tapPointIndex = 0;
+  }
+
+  addTapPoint(normX, normY) {
+    if (this.tapPoints.length < 6) {
+      this.tapPoints.push({
+        x: Math.max(0.08, Math.min(0.92, normX)),
+        y: Math.max(0.08, Math.min(0.92, normY))
+      });
+      return true;
+    }
+    return false;
+  }
+
+  clearTapPoints() {
+    this.tapPoints = [];
+    this.tapPointIndex = 0;
+  }
+
+  getTapPoints() {
+    return [...this.tapPoints];
   }
 
   setAspectRatio(ratio) {
@@ -102,14 +133,21 @@ export class CanvasRenderer {
       this.activeCueText = newText;
       this.activeCueIndex = cue ? cue.index : -1;
       
-      // Trigger subtle punch-in animation
+      // Trigger punch-in animation
       this.scale = 0.94;
       this.targetScale = 1.0;
       this.cueOpacity = 0.4;
       this.targetOpacity = 1.0;
 
-      if (this.style.positionMode === 'dynamic' && newText) {
-        this._generateDynamicPosition();
+      if ((this.style.positionMode === 'custom_tap' || this.style.positionMode === 'dynamic') && newText) {
+        if (this.tapPoints.length > 0) {
+          const pt = this.tapPoints[this.tapPointIndex % this.tapPoints.length];
+          this.tapPointIndex++;
+          this.targetX = this._clampX(pt.x * this.baseWidth);
+          this.targetY = this._clampY(pt.y * this.baseHeight);
+        } else {
+          this._generateDynamicPosition();
+        }
       } else {
         this.recalculatePositions();
       }
@@ -149,7 +187,23 @@ export class CanvasRenderer {
 
       this.currentX = this.targetX;
       this.currentY = this.targetY;
+    } else if (this.style.positionMode === 'custom_tap' && this.tapPoints.length > 0) {
+      const pt = this.tapPoints[0];
+      this.targetX = this._clampX(pt.x * this.baseWidth);
+      this.targetY = this._clampY(pt.y * this.baseHeight);
+      this.currentX = this.targetX;
+      this.currentY = this.targetY;
     }
+  }
+
+  _clampX(x) {
+    const margin = this.baseWidth * 0.12;
+    return Math.max(margin, Math.min(this.baseWidth - margin, x));
+  }
+
+  _clampY(y) {
+    const margin = this.baseHeight * 0.12;
+    return Math.max(margin, Math.min(this.baseHeight - margin, y));
   }
 
   _generateDynamicPosition() {
@@ -161,8 +215,8 @@ export class CanvasRenderer {
     const minY = marginY;
     const maxY = this.baseHeight - marginY;
 
-    this.targetX = minX + Math.random() * (maxX - minX);
-    this.targetY = minY + Math.random() * (maxY - minY);
+    this.targetX = this._clampX(minX + Math.random() * (maxX - minX));
+    this.targetY = this._clampY(minY + Math.random() * (maxY - minY));
   }
 
   startLoop() {

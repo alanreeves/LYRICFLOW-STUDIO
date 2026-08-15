@@ -408,3 +408,31 @@
   border: 1px solid rgba(245, 158, 11, 0.5);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.2);
 }
+
+/* Tap Point Markers Overlay */
+.tap-point-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  color: #ffffff;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.8), 0 4px 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  animation: pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pop-in {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  70% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+}
+

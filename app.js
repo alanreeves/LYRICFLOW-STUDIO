@@ -7,12 +7,13 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.4';
+export const APP_VERSION = '1.0.5';
 
 class App {
   constructor() {
     this.currentStep = 1;
     this.deferredInstallPrompt = null;
+    this.customMaxDuration = null;
 
     // Subsystems
     this.audio = new AudioManager();
@@ -669,26 +670,107 @@ class App {
       this._updateStyle({ boxOpacity: val });
     });
 
-    // Position Mode: Fixed vs Dynamic
+    // Position Mode: Fixed vs Tap Points (1-6)
     const posFixedBtn = document.getElementById('pos-mode-fixed');
-    const posDynamicBtn = document.getElementById('pos-mode-dynamic');
+    const posTapBtn = document.getElementById('pos-mode-tap');
     const fixedControls = document.getElementById('fixed-pos-controls');
-    const dynamicControls = document.getElementById('dynamic-pos-controls');
+    const tapControls = document.getElementById('tap-pos-controls');
+    const tapOverlay = document.getElementById('tap-points-overlay');
+    const tapHint = document.getElementById('preview-tap-hint');
+    const tapPointsCount = document.getElementById('tap-points-count');
+    const tapPointsList = document.getElementById('tap-points-list');
+    const clearTapBtn = document.getElementById('btn-clear-tap-points');
+    const testNextBtn = document.getElementById('btn-test-next-pos');
+
+    const updateTapPointsUI = () => {
+      const points = this.stylePreviewRenderer.getTapPoints();
+      if (tapPointsCount) tapPointsCount.textContent = `${points.length} / 6`;
+      
+      // Update Markers on Overlay
+      if (tapOverlay) {
+        tapOverlay.innerHTML = '';
+        points.forEach((pt, idx) => {
+          const pin = document.createElement('div');
+          pin.className = 'tap-point-marker';
+          pin.style.left = `${pt.x * 100}%`;
+          pin.style.top = `${pt.y * 100}%`;
+          pin.textContent = `${idx + 1}`;
+          tapOverlay.appendChild(pin);
+        });
+      }
+
+      // Update Points Badges List
+      if (tapPointsList) {
+        if (points.length === 0) {
+          tapPointsList.innerHTML = `<span class="text-[11px] text-slate-500 italic">No tap points set yet. Click preview screen.</span>`;
+        } else {
+          tapPointsList.innerHTML = points.map((pt, idx) => `
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[10px] font-mono font-bold">
+              <span class="w-3.5 h-3.5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[9px]">${idx + 1}</span>
+              ${Math.round(pt.x * 100)}%, ${Math.round(pt.y * 100)}%
+            </span>
+          `).join('');
+        }
+      }
+    };
 
     posFixedBtn?.addEventListener('click', () => {
       posFixedBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition';
-      posDynamicBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition';
+      posTapBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition';
       fixedControls.classList.remove('hidden');
-      dynamicControls.classList.add('hidden');
+      tapControls.classList.add('hidden');
+      if (tapHint) tapHint.classList.add('hidden');
       this._updateStyle({ positionMode: 'fixed' });
+      this._syncStylePreview();
     });
 
-    posDynamicBtn?.addEventListener('click', () => {
-      posDynamicBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition';
+    posTapBtn?.addEventListener('click', () => {
+      posTapBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition';
       posFixedBtn.className = 'flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition';
       fixedControls.classList.add('hidden');
-      dynamicControls.classList.remove('hidden');
-      this._updateStyle({ positionMode: 'dynamic' });
+      tapControls.classList.remove('hidden');
+      if (tapHint) tapHint.classList.remove('hidden');
+      this._updateStyle({ positionMode: 'custom_tap' });
+      updateTapPointsUI();
+      this._syncStylePreview();
+    });
+
+    // Handle Tap on Preview Screen
+    tapOverlay?.addEventListener('click', (e) => {
+      const rect = tapOverlay.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      const normX = Math.max(0.1, Math.min(0.9, clickX / rect.width));
+      const normY = Math.max(0.12, Math.min(0.88, clickY / rect.height));
+
+      const points = this.stylePreviewRenderer.getTapPoints();
+      if (points.length >= 6) {
+        this.showToast('Maximum 6 landing points reached. Click "Clear All Points" to reset.', 'warning');
+        return;
+      }
+
+      this.stylePreviewRenderer.addTapPoint(normX, normY);
+      this.renderer.addTapPoint(normX, normY);
+      updateTapPointsUI();
+      
+      // Auto-switch to tap mode if not already
+      posTapBtn?.click();
+      this._syncStylePreview();
+      this.showToast(`Placed Point [${points.length + 1}] at ${Math.round(normX * 100)}%, ${Math.round(normY * 100)}%`, 'success', 1500);
+    });
+
+    clearTapBtn?.addEventListener('click', () => {
+      this.stylePreviewRenderer.clearTapPoints();
+      this.renderer.clearTapPoints();
+      updateTapPointsUI();
+      this._syncStylePreview();
+      this.showToast('Cleared all tap landing points', 'info');
+    });
+
+    testNextBtn?.addEventListener('click', () => {
+      const sampleInput = document.getElementById('preview-sample-text');
+      const text = sampleInput?.value || 'LYRICS PREVIEW TEXT';
+      this.stylePreviewRenderer.setCue({ index: 0, text });
     });
 
     // Fixed vertical presets (Top, Center, Bottom)
@@ -814,6 +896,37 @@ class App {
       }
     };
 
+    // Auto-Stop Mode Setup
+    const limitModeSelect = document.getElementById('recording-limit-mode');
+    const customSecContainer = document.getElementById('recording-custom-sec-container');
+    const customSecInput = document.getElementById('recording-custom-sec-input');
+
+    const updateLimitMode = () => {
+      const val = limitModeSelect?.value || 'audio_end';
+      if (val === 'audio_end') {
+        this.customMaxDuration = null;
+        if (customSecContainer) {
+          customSecContainer.classList.add('hidden');
+          customSecContainer.classList.remove('flex');
+        }
+      } else if (val === 'custom') {
+        if (customSecContainer) {
+          customSecContainer.classList.remove('hidden');
+          customSecContainer.classList.add('flex');
+        }
+        this.customMaxDuration = parseInt(customSecInput?.value, 10) || 30;
+      } else {
+        if (customSecContainer) {
+          customSecContainer.classList.add('hidden');
+          customSecContainer.classList.remove('flex');
+        }
+        this.customMaxDuration = parseInt(val, 10);
+      }
+    };
+
+    limitModeSelect?.addEventListener('change', updateLimitMode);
+    customSecInput?.addEventListener('input', updateLimitMode);
+
     // Audio ended
     this.audio.onEndedCallback = () => {
       if (this.isStudioRecording) {
@@ -826,6 +939,10 @@ class App {
       const timerDisplay = document.getElementById('recording-time-display');
       if (timerDisplay) {
         timerDisplay.textContent = this.audio.formatTime(elapsed);
+      }
+      // Check custom auto-stop limit
+      if (this.isStudioRecording && this.customMaxDuration && elapsed >= this.customMaxDuration) {
+        this.stopStudioRecording();
       }
     };
 
@@ -1414,29 +1531,32 @@ class App {
   // 12. VIDEO SPEED CONTROLS
   // ==========================================
   _setupVideoSpeedControls() {
-    const bgSlider = document.getElementById('bg-video-speed-slider');
-    const bgVal = document.getElementById('bg-video-speed-val');
-    const previewSlider = document.getElementById('preview-video-speed-slider');
-    const previewVal = document.getElementById('preview-video-speed-val');
     const studioSlider = document.getElementById('studio-video-speed-slider');
     const studioVal = document.getElementById('studio-video-speed-val');
-    const presetBtns = document.querySelectorAll('.btn-video-speed-preset');
+    const presetBtns = document.querySelectorAll('.btn-studio-speed-preset');
+
+    const formatSpeed = (speed) => {
+      if (Math.abs(speed - 0.125) < 0.005) return '0.125x (1/8 speed)';
+      if (Math.abs(speed - 0.25) < 0.005) return '0.25x (1/4 speed)';
+      if (Math.abs(speed - 0.5) < 0.005) return '0.50x (1/2 speed)';
+      if (Math.abs(speed - 0.75) < 0.005) return '0.75x (3/4 speed)';
+      if (Math.abs(speed - 1.0) < 0.005) return '1.00x (Normal speed)';
+      if (Math.abs(speed - 1.5) < 0.005) return '1.50x';
+      if (Math.abs(speed - 2.0) < 0.005) return '2.00x';
+      return `${speed.toFixed(2)}x`;
+    };
 
     const updateSpeedUI = (speed, showFeedback = false) => {
       const parsedSpeed = Number(speed) || 1.0;
       const applied = this.mediaPool.setVideoSpeed(parsedSpeed);
-      const formatted = `${applied.toFixed(2).replace(/\.?0+$/, '')}x`;
+      const formatted = formatSpeed(applied);
 
-      if (bgSlider) bgSlider.value = applied;
-      if (bgVal) bgVal.textContent = formatted;
-      if (previewSlider) previewSlider.value = applied;
-      if (previewVal) previewVal.textContent = formatted;
       if (studioSlider) studioSlider.value = applied;
       if (studioVal) studioVal.textContent = formatted;
 
       presetBtns.forEach((btn) => {
         const btnSpeed = parseFloat(btn.dataset.speed);
-        if (Math.abs(btnSpeed - applied) < 0.04) {
+        if (Math.abs(btnSpeed - applied) < 0.02) {
           btn.classList.add('active', 'bg-brand-600', 'text-white', 'border-brand-500');
           btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
         } else {
@@ -1446,23 +1566,9 @@ class App {
       });
 
       if (showFeedback) {
-        this.showToast(`Video speed set to ${formatted}`, 'info', 1500);
+        this.showToast(`Background video speed: ${formatted}`, 'info', 1500);
       }
     };
-
-    bgSlider?.addEventListener('input', (e) => {
-      updateSpeedUI(parseFloat(e.target.value));
-    });
-    bgSlider?.addEventListener('change', (e) => {
-      updateSpeedUI(parseFloat(e.target.value), true);
-    });
-
-    previewSlider?.addEventListener('input', (e) => {
-      updateSpeedUI(parseFloat(e.target.value));
-    });
-    previewSlider?.addEventListener('change', (e) => {
-      updateSpeedUI(parseFloat(e.target.value), true);
-    });
 
     studioSlider?.addEventListener('input', (e) => {
       updateSpeedUI(parseFloat(e.target.value));
@@ -1485,7 +1591,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.4').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.5').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

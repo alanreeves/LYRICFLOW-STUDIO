@@ -48,7 +48,7 @@
   <!-- FFmpeg.wasm for Browser-Side MP4 Generation -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=1.0.4">
+  <link rel="stylesheet" href="style.css?v=1.0.5">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -62,7 +62,7 @@
         <div class="flex items-center">
           <span class="text-xl font-display font-extrabold bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">LyricFlow Studio</span>
           <span class="ml-2 text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 hidden sm:inline-block">MP4 Generator</span>
-          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.4</span>
+          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.5</span>
         </div>
       </div>
 
@@ -211,26 +211,6 @@
           <!-- Background Thumbnails Pool -->
           <div id="bg-pool-list" class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
             <!-- Dynamically populated thumbnails -->
-          </div>
-
-          <!-- Video Playback Speed Controller -->
-          <div class="mt-3 pt-3 border-t border-slate-800/80 space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-slate-300 font-medium flex items-center gap-1.5">
-                <i data-lucide="gauge" class="w-3.5 h-3.5 text-pink-400"></i>
-                <span>Video Playback Speed</span>
-              </span>
-              <span id="bg-video-speed-val" class="font-mono font-bold text-pink-400">1.0x</span>
-            </div>
-            <input type="range" id="bg-video-speed-slider" min="0.25" max="3.0" step="0.05" value="1.0" class="slider-range">
-            <div class="grid grid-cols-6 gap-1 pt-0.5">
-              <button type="button" class="btn-video-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.5">0.5x</button>
-              <button type="button" class="btn-video-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.75">0.75x</button>
-              <button type="button" class="btn-video-speed-preset active py-0.5 text-[10px] font-semibold rounded bg-brand-600 text-white border border-brand-500 transition" data-speed="1.0">1.0x</button>
-              <button type="button" class="btn-video-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="1.25">1.25x</button>
-              <button type="button" class="btn-video-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="1.5">1.5x</button>
-              <button type="button" class="btn-video-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="2.0">2.0x</button>
-            </div>
           </div>
         </div>
 
@@ -579,15 +559,15 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <!-- Mode: Fixed vs Dynamic -->
+              <!-- Mode: Fixed vs Tap Points -->
               <div>
                 <label class="block text-xs font-medium text-slate-300 mb-2">Positioning Style</label>
                 <div class="flex rounded-lg bg-slate-950 p-1 border border-slate-800">
                   <button id="pos-mode-fixed" class="flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition">
                     Fixed Preset
                   </button>
-                  <button id="pos-mode-dynamic" class="flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition">
-                    Dynamic / Random
+                  <button id="pos-mode-tap" class="flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition">
+                    Tap Points (1-6)
                   </button>
                 </div>
               </div>
@@ -602,11 +582,17 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
                 </div>
               </div>
 
-              <!-- Dynamic Settings -->
-              <div id="dynamic-pos-controls" class="hidden">
-                <label class="block text-xs font-medium text-slate-300 mb-2">Dynamic Float Scatter</label>
-                <div class="text-xs text-slate-400 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                  <p>Text coordinates will randomly shift smoothly on each cue change within safe viewport margins.</p>
+              <!-- Tap Landing Points Settings -->
+              <div id="tap-pos-controls" class="hidden col-span-1 sm:col-span-2 space-y-2">
+                <div class="flex items-center justify-between">
+                  <label class="block text-xs font-medium text-slate-300">Tap Points Sequence (<span id="tap-points-count" class="font-mono text-brand-400 font-bold">0 / 6</span>)</label>
+                  <button type="button" id="btn-clear-tap-points" class="text-[11px] font-medium text-red-400 hover:text-red-300 underline cursor-pointer">Clear All Points</button>
+                </div>
+                <div class="text-xs text-slate-400 bg-slate-950 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                  <p class="text-[11px] text-slate-300">👉 <strong>Click anywhere on the preview screen on the right</strong> to place up to 6 ordered landing targets. Text will smoothly advance through your tapped points in sequence!</p>
+                  <div id="tap-points-list" class="flex flex-wrap gap-1.5 pt-1">
+                    <span class="text-[11px] text-slate-500 italic">No tap points set yet. Click preview screen.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -641,18 +627,28 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
                 <i data-lucide="eye" class="w-4 h-4 text-brand-400"></i>
                 <h3 class="font-semibold text-white text-sm">Interactive Live Preview</h3>
               </div>
-              <span class="text-xs text-slate-400 font-mono">Simulated View</span>
+              <span id="preview-tap-hint" class="text-xs text-brand-400 font-medium hidden animate-pulse">Tap screen to place points</span>
             </div>
 
-            <!-- Preview Canvas Container -->
-            <div id="style-preview-wrapper" class="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center">
-              <canvas id="style-preview-canvas" class="w-full h-full object-contain"></canvas>
+            <!-- Preview Canvas Container with Tap Points Overlay -->
+            <div id="style-preview-wrapper" class="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center select-none">
+              <canvas id="style-preview-canvas" class="w-full h-full object-contain pointer-events-none"></canvas>
+              <!-- Interactive Tap Points Overlay Layer -->
+              <div id="tap-points-overlay" class="absolute inset-0 z-10 pointer-events-auto cursor-crosshair">
+                <!-- Dynamically placed numbered pin markers 1..6 -->
+              </div>
             </div>
 
             <!-- Sample text tester input -->
             <div class="mt-4 space-y-2">
-              <label class="block text-xs font-medium text-slate-400">Test Preview Text</label>
-              <input type="text" id="preview-sample-text" value="CAUSE YOU WERE SKY AND I WAS OCEAN" class="input-text w-full text-xs">
+              <label class="block text-xs font-medium text-slate-400">Test Preview Text (Click to cycle positions)</label>
+              <div class="flex gap-2">
+                <input type="text" id="preview-sample-text" value="CAUSE YOU WERE SKY AND I WAS OCEAN" class="input-text flex-1 text-xs">
+                <button id="btn-test-next-pos" class="btn-secondary px-3 py-1.5 text-xs flex items-center gap-1" title="Cycle to next position">
+                  <i data-lucide="redo" class="w-3.5 h-3.5"></i>
+                  <span>Test Next</span>
+                </button>
+              </div>
             </div>
 
             <!-- Background selector for preview -->
@@ -660,15 +656,6 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
               <label class="block text-xs font-medium text-slate-400 mb-2">Active Background in Preview</label>
               <div id="style-bg-selector-strip" class="flex gap-2 overflow-x-auto pb-2">
                 <!-- Mini thumbnails of loaded backgrounds -->
-              </div>
-              <!-- Video Playback Speed in Preview -->
-              <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3 text-xs">
-                <span class="text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
-                  <i data-lucide="gauge" class="w-3.5 h-3.5 text-pink-400"></i>
-                  <span>Video Speed:</span>
-                  <span id="preview-video-speed-val" class="font-mono font-bold text-pink-400">1.0x</span>
-                </span>
-                <input type="range" id="preview-video-speed-slider" min="0.25" max="3.0" step="0.05" value="1.0" class="slider-range flex-1">
               </div>
             </div>
           </div>
@@ -682,12 +669,33 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
       
       <!-- Studio Header Bar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-        <div class="flex items-center gap-3">
-          <div class="w-3.5 h-3.5 rounded-full bg-slate-600" id="rec-status-dot"></div>
+        <div class="flex items-center flex-wrap gap-2.5">
+          <div class="w-3.5 h-3.5 rounded-full bg-slate-600 shrink-0" id="rec-status-dot"></div>
           <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             Live Recording Studio
           </h1>
           <span id="recording-time-display" class="font-mono text-sm font-semibold px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">00:00.0</span>
+
+          <!-- Auto-Stop Mode Selector -->
+          <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-800 text-xs">
+            <span class="text-slate-400 flex items-center gap-1 text-[11px]">
+              <i data-lucide="timer" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span>Stop At:</span>
+            </span>
+            <select id="recording-limit-mode" class="input-select py-0.5 px-1.5 text-xs bg-slate-950 border-slate-700 font-medium cursor-pointer">
+              <option value="audio_end" selected>End of Audio Track</option>
+              <option value="15">15 Seconds</option>
+              <option value="30">30 Seconds</option>
+              <option value="45">45 Seconds</option>
+              <option value="60">60 Seconds (1 Min)</option>
+              <option value="120">2 Minutes</option>
+              <option value="custom">Custom Seconds...</option>
+            </select>
+            <div id="recording-custom-sec-container" class="hidden items-center gap-1">
+              <input type="number" id="recording-custom-sec-input" min="1" max="600" value="30" class="input-text w-14 py-0.5 px-1 text-xs text-center">
+              <span class="text-slate-400 text-[10px]">s</span>
+            </div>
+          </div>
         </div>
 
         <div class="flex items-center gap-3">
@@ -748,25 +756,41 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
             <span id="studio-time-total" class="text-xs font-mono text-slate-500">0:00</span>
           </div>
 
-          <!-- Background Switcher Bar Mid-Recording -->
-          <div class="card p-3 bg-slate-900/90 space-y-2">
-            <div class="flex items-center justify-between text-xs flex-wrap gap-2">
+          <!-- Background Switcher & Variable Speed Bar -->
+          <div class="card p-3.5 bg-slate-900/90 space-y-3">
+            <div class="flex items-center justify-between text-xs flex-wrap gap-2 border-b border-slate-800/80 pb-2">
               <span class="font-semibold text-slate-300 flex items-center gap-1.5">
                 <i data-lucide="layers" class="w-3.5 h-3.5 text-pink-400"></i>
                 Switch Background (Keys 1-9)
               </span>
-              <!-- Live Video Speed Control -->
-              <div class="flex items-center gap-2">
-                <span class="text-slate-400 flex items-center gap-1">
-                  <i data-lucide="gauge" class="w-3 h-3 text-pink-400"></i>
-                  <span>Speed:</span>
-                  <span id="studio-video-speed-val" class="font-mono font-bold text-pink-400">1.0x</span>
-                </span>
-                <input type="range" id="studio-video-speed-slider" min="0.25" max="3.0" step="0.05" value="1.0" class="slider-range w-24">
-              </div>
+              <span class="text-slate-500 text-[11px]">Click thumbnail or press key number</span>
             </div>
+            
             <div id="studio-bg-switcher" class="flex gap-2 overflow-x-auto pb-1">
               <!-- Live Background selector cards -->
+            </div>
+
+            <!-- Large Variable Video Speed Controller -->
+            <div class="pt-2 border-t border-slate-800/80 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="gauge" class="w-4 h-4 text-pink-400"></i>
+                  <span>Background Video Playback Speed:</span>
+                </span>
+                <span id="studio-video-speed-val" class="font-mono font-bold text-sm text-pink-400">1.00x (Normal)</span>
+              </div>
+              
+              <!-- Smooth continuous slider (down to 1/8 speed 0.125x) -->
+              <input type="range" id="studio-video-speed-slider" min="0.125" max="2.0" step="0.005" value="1.0" class="slider-range w-full">
+
+              <div class="grid grid-cols-6 gap-1.5 pt-1">
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.125">1/8x</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.25">1/4x</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.5">1/2x</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.75">3/4x</button>
+                <button type="button" class="btn-studio-speed-preset active py-1 text-[11px] font-semibold rounded bg-brand-600 text-white border border-brand-500 transition" data-speed="1.0">1.0x</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="1.5">1.5x</button>
+              </div>
             </div>
           </div>
 
@@ -957,7 +981,7 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
       <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed Version</span>
-          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.4</span>
+          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.5</span>
         </div>
         <div class="flex items-center justify-between text-xs text-slate-400">
           <span>Running Environment:</span>
@@ -1065,7 +1089,7 @@ Use double line breaks to separate verses/stanzas, or configure automatic line g
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.4"></script>
+  <script type="module" src="app.js?v=1.0.5"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

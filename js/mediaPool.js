@@ -12,16 +12,17 @@ export class MediaPool {
     // Procedural gradient animation time counter
     this.animTime = 0;
 
-    // Background playback speed rate (0.25x - 3.0x)
+    // Background playback speed rate (0.125x [1/8 speed] - 3.0x)
     this.videoSpeed = 1.0;
   }
 
   setVideoSpeed(speed) {
-    const val = Math.max(0.1, Math.min(4.0, parseFloat(speed) || 1.0));
-    this.videoSpeed = Number(val.toFixed(2));
+    const val = Math.max(0.125, Math.min(3.0, parseFloat(speed) || 1.0));
+    this.videoSpeed = Number(val.toFixed(3));
     this.assets.forEach((asset) => {
       if (asset.type === 'video' && asset.element) {
         asset.element.playbackRate = this.videoSpeed;
+        asset.element.defaultPlaybackRate = this.videoSpeed;
       }
     });
     return this.videoSpeed;
@@ -176,6 +177,8 @@ export class MediaPool {
     if (found) {
       this.activeAssetId = id;
       if (found.type === 'video' && found.element) {
+        found.element.playbackRate = this.videoSpeed;
+        found.element.defaultPlaybackRate = this.videoSpeed;
         found.element.play().catch(() => {});
       }
       if (this.onActiveChangeCallback) {
