@@ -7,9 +7,12 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
+export const APP_VERSION = '1.0.3';
+
 class App {
   constructor() {
     this.currentStep = 1;
+    this.deferredInstallPrompt = null;
 
     // Subsystems
     this.audio = new AudioManager();
@@ -41,7 +44,10 @@ class App {
     this._setupExportControls();
     this._setupGlobalShortcuts();
     this._setupDemoLoader();
+    this._setupPwaInstall();
+    this._setupSettingsMenu();
     this._setupServiceWorker();
+    this._checkAppVersionUpdate();
 
     // Default procedural backgrounds
     this.mediaPool.loadDemoAssets();
@@ -51,20 +57,36 @@ class App {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  showToast(message, type = 'info') {
+  showToast(message, type = 'info', duration = 3500) {
     const toast = document.getElementById('toast');
+    const toastCard = document.getElementById('toast-card');
     const msgEl = document.getElementById('toast-message');
     const iconEl = document.getElementById('toast-icon');
 
     if (!toast || !msgEl) return;
 
     msgEl.textContent = message;
-    if (type === 'success') {
-      iconEl.className = 'text-emerald-400';
-    } else if (type === 'error') {
-      iconEl.className = 'text-red-400';
-    } else {
-      iconEl.className = 'text-brand-400';
+    
+    if (toastCard) {
+      toastCard.className = `toast-card toast-${type} text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border pointer-events-auto`;
+    }
+
+    if (iconEl) {
+      let iconName = 'info';
+      let iconColor = 'text-brand-400';
+      if (type === 'success') {
+        iconName = 'check-circle-2';
+        iconColor = 'text-emerald-400';
+      } else if (type === 'error') {
+        iconName = 'alert-circle';
+        iconColor = 'text-red-400';
+      } else if (type === 'warning') {
+        iconName = 'alert-triangle';
+        iconColor = 'text-amber-400';
+      }
+      iconEl.className = `${iconColor} shrink-0`;
+      iconEl.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+      if (window.lucide) window.lucide.createIcons();
     }
 
     toast.classList.remove('translate-y-20', 'opacity-0');
@@ -74,7 +96,130 @@ class App {
     this._toastTimeout = setTimeout(() => {
       toast.classList.remove('translate-y-0', 'opacity-100');
       toast.classList.add('translate-y-20', 'opacity-0');
-    }, 3000);
+    }, duration);
+  }
+
+  showAppAlert({ title = 'Notice', message = '', type = 'info', confirmText = 'OK' }) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('app-dialog-modal');
+      const titleEl = document.getElementById('app-dialog-title');
+      const msgEl = document.getElementById('app-dialog-message');
+      const confirmBtn = document.getElementById('app-dialog-confirm-btn');
+      const cancelBtn = document.getElementById('app-dialog-cancel-btn');
+      const inputContainer = document.getElementById('app-dialog-input-container');
+      const iconContainer = document.getElementById('app-dialog-icon-container');
+      const iconEl = document.getElementById('app-dialog-icon');
+
+      if (!modal) {
+        alert(message);
+        return resolve();
+      }
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      confirmBtn.textContent = confirmText;
+      confirmBtn.className = 'btn-primary px-5 py-1.5 text-xs';
+      if (cancelBtn) cancelBtn.classList.add('hidden');
+      if (inputContainer) inputContainer.classList.add('hidden');
+
+      let iconName = 'info';
+      let iconColor = 'text-brand-400';
+      let bgBorder = 'bg-brand-500/15 border-brand-500/30';
+      if (type === 'success') {
+        iconName = 'check-circle-2';
+        iconColor = 'text-emerald-400';
+        bgBorder = 'bg-emerald-500/15 border-emerald-500/30';
+      } else if (type === 'error' || type === 'danger') {
+        iconName = 'alert-octagon';
+        iconColor = 'text-red-400';
+        bgBorder = 'bg-red-500/15 border-red-500/30';
+      } else if (type === 'warning') {
+        iconName = 'alert-triangle';
+        iconColor = 'text-amber-400';
+        bgBorder = 'bg-amber-500/15 border-amber-500/30';
+      }
+
+      if (iconContainer) iconContainer.className = `w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${iconColor} ${bgBorder}`;
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', iconName);
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => modal.classList.remove('opacity-0'));
+
+      const cleanup = () => {
+        modal.classList.add('opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+      };
+
+      const onConfirm = () => {
+        cleanup();
+        resolve();
+      };
+
+      confirmBtn.addEventListener('click', onConfirm, { once: true });
+    });
+  }
+
+  showAppConfirm({ title = 'Confirm Action', message = '', type = 'warning', confirmText = 'Confirm', cancelText = 'Cancel', isDanger = false }) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('app-dialog-modal');
+      const titleEl = document.getElementById('app-dialog-title');
+      const msgEl = document.getElementById('app-dialog-message');
+      const confirmBtn = document.getElementById('app-dialog-confirm-btn');
+      const cancelBtn = document.getElementById('app-dialog-cancel-btn');
+      const inputContainer = document.getElementById('app-dialog-input-container');
+      const iconContainer = document.getElementById('app-dialog-icon-container');
+      const iconEl = document.getElementById('app-dialog-icon');
+
+      if (!modal) {
+        return resolve(confirm(message));
+      }
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      confirmBtn.textContent = confirmText;
+      cancelBtn.textContent = cancelText;
+      cancelBtn.classList.remove('hidden');
+      if (inputContainer) inputContainer.classList.add('hidden');
+
+      if (isDanger) {
+        confirmBtn.className = 'px-5 py-1.5 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-500/25 border border-red-400/30 transition cursor-pointer';
+      } else {
+        confirmBtn.className = 'btn-primary px-5 py-1.5 text-xs cursor-pointer';
+      }
+
+      let iconName = isDanger ? 'trash-2' : 'help-circle';
+      let iconColor = isDanger ? 'text-red-400' : 'text-amber-400';
+      let bgBorder = isDanger ? 'bg-red-500/15 border-red-500/30' : 'bg-amber-500/15 border-amber-500/30';
+
+      if (iconContainer) iconContainer.className = `w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${iconColor} ${bgBorder}`;
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', iconName);
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => modal.classList.remove('opacity-0'));
+
+      const cleanup = () => {
+        modal.classList.add('opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+      };
+
+      const onConfirm = () => {
+        cleanup();
+        resolve(true);
+      };
+      const onCancel = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      confirmBtn.addEventListener('click', onConfirm, { once: true });
+      cancelBtn.addEventListener('click', onCancel, { once: true });
+    });
   }
 
   goToStep(stepNumber) {
@@ -1049,20 +1194,228 @@ class App {
       }
     });
 
-    document.getElementById('btn-reset-all')?.addEventListener('click', () => {
-      if (confirm('Reset the entire project and clear loaded assets?')) {
+    document.getElementById('btn-reset-all')?.addEventListener('click', async () => {
+      const confirmed = await this.showAppConfirm({
+        title: 'Reset Entire Project?',
+        message: 'This will reset all audio, background assets, and lyrics cues. Are you sure you want to start fresh?',
+        confirmText: 'Reset Project',
+        cancelText: 'Keep Working',
+        isDanger: true
+      });
+      if (confirmed) {
         location.reload();
       }
     });
   }
 
   // ==========================================
-  // 9. SERVICE WORKER REGISTRATION (PWA)
+  // 9. PWA INSTALLATION WORKFLOW
+  // ==========================================
+  _setupPwaInstall() {
+    const installBtn = document.getElementById('btn-pwa-install');
+    const settingsInstallBtn = document.getElementById('btn-settings-install');
+
+    const handleInstallPrompt = async () => {
+      if (this.deferredInstallPrompt) {
+        this.deferredInstallPrompt.prompt();
+        const { outcome } = await this.deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+          this.showToast('Installing LyricFlow Studio PWA...', 'success');
+        }
+        this.deferredInstallPrompt = null;
+        if (installBtn) installBtn.classList.add('hidden');
+      } else {
+        await this.showAppAlert({
+          title: 'Install LyricFlow Studio',
+          message: 'To install LyricFlow Studio as a desktop or mobile application:\n\n• On Chrome/Edge/Brave: Look for the Install icon (🖥️ or 📥) on the right side of the browser address bar.\n• On iOS Safari: Tap the Share button (⎋) and choose "Add to Home Screen".\n• On Android Chrome: Tap the 3-dot menu and select "Install app".',
+          type: 'info'
+        });
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredInstallPrompt = e;
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+      }
+    });
+
+    installBtn?.addEventListener('click', handleInstallPrompt);
+    settingsInstallBtn?.addEventListener('click', handleInstallPrompt);
+
+    window.addEventListener('appinstalled', () => {
+      this.deferredInstallPrompt = null;
+      if (installBtn) installBtn.classList.add('hidden');
+      this.showToast('LyricFlow Studio was installed successfully!', 'success');
+    });
+  }
+
+  // ==========================================
+  // 10. SETTINGS MENU & UPDATE / RELOAD SYSTEM
+  // ==========================================
+  _setupSettingsMenu() {
+    const settingsModal = document.getElementById('settings-modal');
+    const openBtn = document.getElementById('btn-open-settings');
+    const closeBtn = document.getElementById('btn-close-settings');
+    const closeFooterBtn = document.getElementById('btn-close-settings-footer');
+    const backdrop = settingsModal?.querySelector('.app-dialog-backdrop');
+    const reloadBtn = document.getElementById('btn-settings-reload');
+    const clearCacheBtn = document.getElementById('btn-settings-clear-cache');
+    const envBadge = document.getElementById('settings-env-badge');
+    const versionBadge = document.getElementById('settings-version-badge');
+
+    // Update Environment status in settings
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (envBadge) {
+      envBadge.textContent = isStandalone ? 'PWA Installed (Standalone Mode)' : 'Web Browser / Online Mode';
+    }
+    if (versionBadge) {
+      versionBadge.textContent = `v${APP_VERSION}`;
+    }
+
+    const openSettings = () => {
+      if (!settingsModal) return;
+      settingsModal.classList.remove('hidden');
+      requestAnimationFrame(() => settingsModal.classList.remove('opacity-0'));
+    };
+
+    const closeSettings = () => {
+      if (!settingsModal) return;
+      settingsModal.classList.add('opacity-0');
+      setTimeout(() => settingsModal.classList.add('hidden'), 200);
+    };
+
+    openBtn?.addEventListener('click', openSettings);
+    closeBtn?.addEventListener('click', closeSettings);
+    closeFooterBtn?.addEventListener('click', closeSettings);
+    backdrop?.addEventListener('click', closeSettings);
+
+    // Reload button: checks service worker, clears PWA cache, reloads, and flags popup
+    reloadBtn?.addEventListener('click', async () => {
+      const originalHTML = reloadBtn.innerHTML;
+      reloadBtn.innerHTML = `
+        <div class="flex items-center gap-3 text-left">
+          <div class="w-8 h-8 rounded-lg bg-brand-500/20 flex items-center justify-center text-brand-400 animate-spin">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="text-sm font-semibold text-white">Checking & Updating...</div>
+            <div class="text-xs text-slate-400">Purging cache and synchronizing Service Worker...</div>
+          </div>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+
+      try {
+        // 1. Service Worker update check & skip waiting
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            await reg.update();
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            if (reg.active) {
+              reg.active.postMessage({ type: 'CLEAR_CACHE' });
+            }
+          }
+        }
+
+        // 2. Clear browser CacheStorage directly
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+
+        // 3. Mark update notice flag in sessionStorage
+        sessionStorage.setItem('lyricflow_updated_popup', APP_VERSION);
+
+        // 4. Force reload page
+        window.location.reload(true);
+      } catch (err) {
+        console.error('Update check failed:', err);
+        reloadBtn.innerHTML = originalHTML;
+        if (window.lucide) window.lucide.createIcons();
+        await this.showAppAlert({
+          title: 'Update Notice',
+          message: `Update check completed: ${err.message || 'Cache cleared.'}. Reloading...`,
+          type: 'info'
+        });
+        window.location.reload(true);
+      }
+    });
+
+    // Clear Cache & Reset Data
+    clearCacheBtn?.addEventListener('click', async () => {
+      const confirmed = await this.showAppConfirm({
+        title: 'Empty PWA Cache & Storage?',
+        message: 'This will purge all offline cached assets and reset application cache. The page will then reload immediately.',
+        confirmText: 'Empty Cache & Reload',
+        cancelText: 'Cancel',
+        isDanger: true
+      });
+
+      if (confirmed) {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        sessionStorage.setItem('lyricflow_updated_popup', APP_VERSION);
+        window.location.reload(true);
+      }
+    });
+
+    // Toast Close Button
+    document.getElementById('toast-close-btn')?.addEventListener('click', () => {
+      const toast = document.getElementById('toast');
+      if (toast) {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }
+    });
+  }
+
+  // ==========================================
+  // 11. VERSION UPDATE NOTIFICATION POPUP
+  // ==========================================
+  _checkAppVersionUpdate() {
+    const updatedPopupFlag = sessionStorage.getItem('lyricflow_updated_popup');
+    const storedVersion = localStorage.getItem('lyricflow_app_version');
+
+    if (updatedPopupFlag) {
+      sessionStorage.removeItem('lyricflow_updated_popup');
+      localStorage.setItem('lyricflow_app_version', APP_VERSION);
+      setTimeout(() => {
+        this.showAppAlert({
+          title: 'Application Updated',
+          message: `✨ LyricFlow Studio has successfully loaded the newest version (v${APP_VERSION}) with refreshed caches!`,
+          type: 'success',
+          confirmText: 'Awesome'
+        });
+      }, 350);
+    } else if (storedVersion && storedVersion !== APP_VERSION) {
+      localStorage.setItem('lyricflow_app_version', APP_VERSION);
+      setTimeout(() => {
+        this.showAppAlert({
+          title: 'LyricFlow Studio Updated',
+          message: `🎉 Updated to version v${APP_VERSION}! You are now enjoying the latest performance enhancements and features.`,
+          type: 'success',
+          confirmText: 'Got it'
+        });
+      }, 350);
+    } else {
+      localStorage.setItem('lyricflow_app_version', APP_VERSION);
+    }
+  }
+
+  // ==========================================
+  // 12. SERVICE WORKER REGISTRATION (PWA)
   // ==========================================
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.1').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.3').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
