@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.8';
+export const APP_VERSION = '1.0.9';
 
 class App {
   constructor() {
@@ -1561,6 +1561,14 @@ class App {
       updateSpeedUI(parseFloat(e.target.value), true);
     });
 
+    presetBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed);
+        updateSpeedUI(speed, true);
+      });
+    });
+  }
+
   _updateTapPointsOverlayUI() {
     const tapOverlay = document.getElementById('tap-points-overlay');
     const tapPointsCount = document.getElementById('tap-points-count');
@@ -2006,7 +2014,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.8').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.9').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
