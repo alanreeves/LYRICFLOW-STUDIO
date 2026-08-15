@@ -133,10 +133,10 @@ export class CanvasRenderer {
       this.activeCueText = newText;
       this.activeCueIndex = cue ? cue.index : -1;
       
-      // Trigger punch-in animation
-      this.scale = 0.94;
+      // Smooth fade-in transition
+      this.scale = 0.95;
       this.targetScale = 1.0;
-      this.cueOpacity = 0.4;
+      this.cueOpacity = 0.0; // Start at 0.0 for full fade-in
       this.targetOpacity = 1.0;
 
       if ((this.style.positionMode === 'custom_tap' || this.style.positionMode === 'dynamic') && newText) {
@@ -252,14 +252,14 @@ export class CanvasRenderer {
       ctx.fillRect(0, 0, w, h);
     }
 
-    // 2. Animate transitions
-    this.currentX += (this.targetX - this.currentX) * 0.25;
-    this.currentY += (this.targetY - this.currentY) * 0.25;
-    this.scale += (this.targetScale - this.scale) * 0.3;
-    this.cueOpacity += (this.targetOpacity - this.cueOpacity) * 0.3;
+    // 2. Animate transitions with smooth fade-in and easing
+    this.currentX += (this.targetX - this.currentX) * 0.14;
+    this.currentY += (this.targetY - this.currentY) * 0.14;
+    this.scale += (this.targetScale - this.scale) * 0.10;
+    this.cueOpacity += (this.targetOpacity - this.cueOpacity) * 0.09;
 
     // 3. Draw Lyrics Text if present
-    if (this.activeCueText && !this.isBlank) {
+    if (this.activeCueText && !this.isBlank && this.cueOpacity > 0.001) {
       this._renderText(ctx, this.activeCueText, this.currentX, this.currentY, w, h);
     }
   }

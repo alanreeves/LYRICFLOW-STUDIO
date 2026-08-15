@@ -179,12 +179,33 @@ export class MediaPool {
       if (found.type === 'video' && found.element) {
         found.element.playbackRate = this.videoSpeed;
         found.element.defaultPlaybackRate = this.videoSpeed;
-        found.element.play().catch(() => {});
+        if (this.isPlaying) {
+          found.element.play().catch(() => {});
+        }
       }
       if (this.onActiveChangeCallback) {
         this.onActiveChangeCallback(found);
       }
     }
+  }
+
+  playActiveVideo() {
+    this.isPlaying = true;
+    const active = this.getActiveAsset();
+    if (active && active.type === 'video' && active.element) {
+      active.element.playbackRate = this.videoSpeed;
+      active.element.defaultPlaybackRate = this.videoSpeed;
+      active.element.play().catch(() => {});
+    }
+  }
+
+  pauseAllVideos() {
+    this.isPlaying = false;
+    this.assets.forEach((asset) => {
+      if (asset.type === 'video' && asset.element) {
+        asset.element.pause();
+      }
+    });
   }
 
   setActiveByIndex(index) {
@@ -230,7 +251,9 @@ export class MediaPool {
    */
   drawBackground(ctx, width, height) {
     const active = this.getActiveAsset();
-    this.animTime += 0.015 * this.videoSpeed;
+    if (this.isPlaying) {
+      this.animTime += 0.015 * this.videoSpeed;
+    }
 
     if (!active) {
       // Default dark backdrop
@@ -242,10 +265,10 @@ export class MediaPool {
     if (active.type === 'image' && active.element) {
       this._drawImageCover(ctx, active.element, width, height);
     } else if (active.type === 'video' && active.element) {
-      if (active.element.playbackRate !== this.videoSpeed) {
+      if (Math.abs(active.element.playbackRate - this.videoSpeed) > 0.001) {
         active.element.playbackRate = this.videoSpeed;
       }
-      if (active.element.paused) {
+      if (this.isPlaying && active.element.paused) {
         active.element.play().catch(() => {});
       }
       this._drawImageCover(ctx, active.element, width, height);

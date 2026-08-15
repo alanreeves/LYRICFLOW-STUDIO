@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.6';
+export const APP_VERSION = '1.0.7';
 
 class App {
   constructor() {
@@ -825,8 +825,10 @@ class App {
     studioAudioBtn?.addEventListener('click', async () => {
       if (this.audio.isPlaying) {
         this.audio.pause();
+        this.mediaPool.pauseAllVideos();
       } else {
         await this.audio.play();
+        this.mediaPool.playActiveVideo();
       }
     });
 
@@ -860,6 +862,9 @@ class App {
       if (icon) {
         icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
         if (window.lucide) window.lucide.createIcons();
+      }
+      if (!isPlaying && !this.isStudioRecording) {
+        this.mediaPool.pauseAllVideos();
       }
     };
 
@@ -896,6 +901,7 @@ class App {
 
     // Audio ended
     this.audio.onEndedCallback = () => {
+      this.mediaPool.pauseAllVideos();
       if (this.isStudioRecording) {
         this.stopStudioRecording();
       }
@@ -963,6 +969,7 @@ class App {
     this.audio.seek(0);
     try {
       await this.audio.play();
+      this.mediaPool.playActiveVideo();
     } catch (e) {
       console.warn('Audio play request:', e);
     }
@@ -997,6 +1004,7 @@ class App {
     this.isStudioRecording = false;
 
     this.audio.pause();
+    this.mediaPool.pauseAllVideos();
     this.recorder.stopRecording();
 
     const recBtn = document.getElementById('btn-toggle-record');
@@ -1187,6 +1195,8 @@ class App {
   }
 
   _showExportView(metadata) {
+    this.audio.pause();
+    this.mediaPool.pauseAllVideos();
     this.goToStep(5);
 
     const banner = document.getElementById('mp4-encoding-banner');
@@ -1996,7 +2006,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.6').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.7').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
