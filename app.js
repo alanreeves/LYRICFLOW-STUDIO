@@ -7,15 +7,20 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.10';
+export const APP_VERSION = '1.0.11';
 
 class App {
   constructor() {
     this.currentStep = 1;
-    this.deferredInstallPrompt = null;
+    // Auto-stop limit duration in seconds (null = until audio ends)
     this.customMaxDuration = null;
 
-    // Subsystems
+    // Step 3 Live Preview Song Cues & Slow Auto-Advancer
+    this._previewCueIndex = 0;
+    this._previewAutoInterval = null;
+    this._previewAutoPlaying = true;
+
+    // Initialize modules
     this.audio = new AudioManager();
     this.mediaPool = new MediaPool();
     this.lyrics = new LyricsParser();
@@ -230,31 +235,32 @@ class App {
 
     this.currentStep = stepNumber;
 
-    // Hide all step views
-    for (let i = 1; i <= 5; i++) {
-      const view = document.getElementById(`step-view-${i}`);
-      const btn = document.getElementById(`step-btn-${i}`);
-      if (view) {
-        if (i === stepNumber) {
-          view.classList.remove('hidden');
-        } else {
-          view.classList.add('hidden');
-        }
-      }
-      if (btn) {
-        if (i === stepNumber) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      }
+    // Update Stepper Navigation in Header
+    document.querySelectorAll('.step-nav-btn').forEach((btn) => {
+      const step = parseInt(btn.getAttribute('data-step'), 10);
+      btn.classList.toggle('active', step === stepNumber);
+      btn.classList.toggle('completed', step < stepNumber);
+    });
+
+    // Update Section Views
+    document.querySelectorAll('.step-section').forEach((sec) => {
+      sec.classList.remove('active');
+    });
+
+    const targetSection = document.getElementById(`step-${stepNumber}`);
+    if (targetSection) {
+      targetSection.classList.add('active');
     }
 
-    if (stepNumber === 2) {
-      this._updateCueListUI();
-    } else if (stepNumber === 3) {
+    // Step-specific initializations
+    if (stepNumber === 3) {
       this._syncStylePreview();
-    } else if (stepNumber === 4) {
+      this._startPreviewAutoAdvance();
+    } else {
+      this._stopPreviewAutoAdvance();
+    }
+
+    if (stepNumber === 4) {
       this._setupStudioSession();
     }
 
@@ -760,11 +766,125 @@ class App {
       });
     });
 
+    // Transition Style Selector
+    document.querySelectorAll('.transition-type-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.transition-type-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const transType = btn.getAttribute('data-transition');
+        this._updateStyle({ transitionType: transType });
+        this._advancePreviewCue(0);
+        this.showToast(`Transition: ${btn.querySelector('.font-semibold')?.textContent}`, 'info', 1200);
+      });
+    });
+
+    // Transition Speed Slider
+    const transSpeedSlider = document.getElementById('transition-speed-slider');
+    const transSpeedVal = document.getElementById('transition-speed-val');
+    transSpeedSlider?.addEventListener('input', (e) => {
+      const speed = parseFloat(e.target.value);
+      if (transSpeedVal) {
+        let desc = 'Standard';
+        if (speed <= 0.2) desc = 'Fast';
+        else if (speed <= 0.5) desc = 'Smooth';
+        else if (speed <= 0.9) desc = 'Cinematic';
+        else desc = 'Slow';
+        transSpeedVal.textContent = `${speed.toFixed(2)}s (${desc})`;
+      }
+      this._updateStyle({ transitionSpeed: speed });
+    });
+
+    // Preview Screen Loaded Song Lyrics Controls
+    document.getElementById('btn-preview-next-cue')?.addEventListener('click', () => {
+      this._advancePreviewCue(1);
+    });
+    document.getElementById('btn-preview-prev-cue')?.addEventListener('click', () => {
+      this._advancePreviewCue(-1);
+    });
+    document.getElementById('btn-preview-toggle-auto')?.addEventListener('click', () => {
+      this._togglePreviewAutoAdvance();
+    });
+
     // Test preview text input
     const previewSampleInput = document.getElementById('preview-sample-text');
     previewSampleInput?.addEventListener('input', (e) => {
-      this.stylePreviewRenderer.setCue({ index: 0, text: e.target.value });
+      this.stylePreviewRenderer.setCue({ index: this._previewCueIndex, text: e.target.value });
     });
+  }
+
+  _getPreviewCues() {
+    if (this.lyrics.cues && this.lyrics.cues.length > 0) {
+      return this.lyrics.cues.map(c => c.text);
+    }
+    return [
+      'CAUSE YOU WERE SKY AND I WAS OCEAN',
+      'WE PAINTED DREAMS ACROSS THE MORNING',
+      'A TIMELESS RHYTHM IN THE DARK',
+      'LYRICFLOW STUDIO LIVE RECORDING'
+    ];
+  }
+
+  _advancePreviewCue(direction = 1) {
+    const cues = this._getPreviewCues();
+    if (cues.length === 0) return;
+
+    this._previewCueIndex = (this._previewCueIndex + direction + cues.length) % cues.length;
+    const currentText = cues[this._previewCueIndex];
+
+    const sampleInput = document.getElementById('preview-sample-text');
+    const counterBadge = document.getElementById('preview-cue-counter');
+
+    if (sampleInput) sampleInput.value = currentText;
+    if (counterBadge) counterBadge.textContent = `Cue ${this._previewCueIndex + 1} / ${cues.length}`;
+
+    this.stylePreviewRenderer.setCue({ index: this._previewCueIndex, text: currentText });
+  }
+
+  _startPreviewAutoAdvance() {
+    this._stopPreviewAutoAdvance();
+    this._previewAutoPlaying = true;
+    this._updatePreviewAutoButtonUI();
+    this._previewAutoInterval = setInterval(() => {
+      if (this.currentStep === 3 && this._previewAutoPlaying) {
+        this._advancePreviewCue(1);
+      }
+    }, 3500);
+  }
+
+  _stopPreviewAutoAdvance() {
+    if (this._previewAutoInterval) {
+      clearInterval(this._previewAutoInterval);
+      this._previewAutoInterval = null;
+    }
+  }
+
+  _togglePreviewAutoAdvance() {
+    this._previewAutoPlaying = !this._previewAutoPlaying;
+    this._updatePreviewAutoButtonUI();
+    if (this._previewAutoPlaying) {
+      this._startPreviewAutoAdvance();
+      this.showToast('Auto-advancing lyrics slowly (3.5s)', 'info', 1500);
+    } else {
+      this._stopPreviewAutoAdvance();
+      this.showToast('Paused lyrics auto-advance', 'info', 1500);
+    }
+  }
+
+  _updatePreviewAutoButtonUI() {
+    const autoIcon = document.getElementById('preview-auto-icon');
+    const autoText = document.getElementById('preview-auto-text');
+    const autoBtn = document.getElementById('btn-preview-toggle-auto');
+
+    if (this._previewAutoPlaying) {
+      if (autoIcon) autoIcon.setAttribute('data-lucide', 'pause');
+      if (autoText) autoText.textContent = 'Auto (Playing)';
+      if (autoBtn) autoBtn.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-500 text-white transition flex items-center justify-center gap-1 shadow-sm cursor-pointer';
+    } else {
+      if (autoIcon) autoIcon.setAttribute('data-lucide', 'play');
+      if (autoText) autoText.textContent = 'Auto (Paused)';
+      if (autoBtn) autoBtn.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center justify-center gap-1 border border-slate-700 shadow-sm cursor-pointer';
+    }
+    if (window.lucide) window.lucide.createIcons();
   }
 
   _bindColorInput(inputId, hexId, callback) {
@@ -785,9 +905,7 @@ class App {
   }
 
   _syncStylePreview() {
-    const sampleInput = document.getElementById('preview-sample-text');
-    const text = sampleInput ? sampleInput.value : (this.lyrics.cues[0]?.text || 'LYRICS PREVIEW TEXT');
-    this.stylePreviewRenderer.setCue({ index: 0, text });
+    this._advancePreviewCue(0);
   }
 
   // ==========================================
@@ -1684,6 +1802,8 @@ class App {
         positionMode: this.renderer.style.positionMode,
         verticalAlign: this.renderer.style.verticalAlign,
         textAlign: this.renderer.style.textAlign,
+        transitionType: this.renderer.style.transitionType || 'crossfade',
+        transitionSpeed: this.renderer.style.transitionSpeed || 0.4,
         tapPoints: this.renderer.getTapPoints()
       },
       studio: {
@@ -1952,7 +2072,28 @@ class App {
       });
     }
 
-    // 5. Tap Points
+    // 5. Transitions
+    if (style.transitionType) {
+      document.querySelectorAll('.transition-type-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-transition') === style.transitionType);
+      });
+    }
+
+    const transSpeedSlider = document.getElementById('transition-speed-slider');
+    const transSpeedVal = document.getElementById('transition-speed-val');
+    if (transSpeedSlider && style.transitionSpeed !== undefined) {
+      transSpeedSlider.value = style.transitionSpeed;
+      if (transSpeedVal) {
+        let desc = 'Standard';
+        if (style.transitionSpeed <= 0.2) desc = 'Fast';
+        else if (style.transitionSpeed <= 0.5) desc = 'Smooth';
+        else if (style.transitionSpeed <= 0.9) desc = 'Cinematic';
+        else desc = 'Slow';
+        transSpeedVal.textContent = `${style.transitionSpeed.toFixed(2)}s (${desc})`;
+      }
+    }
+
+    // 6. Tap Points
     if (style.tapPoints && Array.isArray(style.tapPoints)) {
       this.renderer.setTapPoints(style.tapPoints);
       this.stylePreviewRenderer.setTapPoints(style.tapPoints);
@@ -2034,7 +2175,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.10').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.11').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

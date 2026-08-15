@@ -32,12 +32,22 @@ export class CanvasRenderer {
       positionMode: 'fixed', // 'fixed' | 'dynamic'
       verticalAlign: 'center', // 'top' | 'center' | 'bottom'
       textAlign: 'center', // 'left' | 'center' | 'right'
+      transitionType: 'crossfade', // 'crossfade' | 'fade' | 'slide_up' | 'zoom_punch' | 'appear'
+      transitionSpeed: 0.4, // In seconds (0.1 to 2.0)
     };
 
     // Active Cue State
     this.activeCueText = '';
     this.activeCueIndex = -1;
     this.isBlank = false;
+
+    // Outgoing / Crossfade Cue State
+    this.prevCueText = '';
+    this.prevCueOpacity = 0.0;
+    this.prevX = this.baseWidth / 2;
+    this.prevY = this.baseHeight / 2;
+    this.prevScale = 1.0;
+    this.slideOffsetY = 0;
 
     // Dynamic & Custom Tap Position State
     this.tapPoints = []; // Array of { x: 0..1, y: 0..1 } (up to 6 points)
@@ -130,14 +140,49 @@ export class CanvasRenderer {
     const newText = isBlank ? '' : (cue ? cue.text : '');
     
     if (newText !== this.activeCueText) {
+      const transType = this.style.transitionType || 'crossfade';
+
+      // Save previous text for smooth crossfade if previous text exists
+      if (this.activeCueText && this.cueOpacity > 0.05 && transType !== 'appear') {
+        this.prevCueText = this.activeCueText;
+        this.prevCueOpacity = this.cueOpacity;
+        this.prevX = this.currentX;
+        this.prevY = this.currentY;
+        this.prevScale = this.scale;
+      } else {
+        this.prevCueText = '';
+        this.prevCueOpacity = 0.0;
+      }
+
       this.activeCueText = newText;
       this.activeCueIndex = cue ? cue.index : -1;
       
-      // Smooth fade-in transition
-      this.scale = 0.95;
-      this.targetScale = 1.0;
-      this.cueOpacity = 0.0; // Start at 0.0 for full fade-in
-      this.targetOpacity = 1.0;
+      if (transType === 'appear') {
+        this.cueOpacity = 1.0;
+        this.targetOpacity = 1.0;
+        this.scale = 1.0;
+        this.targetScale = 1.0;
+        this.slideOffsetY = 0;
+      } else if (transType === 'slide_up') {
+        this.cueOpacity = 0.0;
+        this.targetOpacity = 1.0;
+        this.scale = 1.0;
+        this.targetScale = 1.0;
+        this.slideOffsetY = this.style.fontSize * 0.75;
+      } else if (transType === 'zoom_punch') {
+        this.cueOpacity = 0.0;
+        this.targetOpacity = 1.0;
+        this.scale = 0.82;
+        this.targetScale = 1.0;
+        this.slideOffsetY = 0;
+      } else {
+        // 'fade' or 'crossfade'
+        this.cueOpacity = 0.0;
+        this.targetOpacity = 1.0;
+        this.scale = 0.96;
+        this.targetScale = 1.0;
+        this.slideOffsetY = 0;
+      }
 
       if ((this.style.positionMode === 'custom_tap' || this.style.positionMode === 'dynamic') && newText) {
         if (this.tapPoints.length > 0) {
@@ -150,6 +195,11 @@ export class CanvasRenderer {
         }
       } else {
         this.recalculatePositions();
+      }
+
+      if (transType === 'appear') {
+        this.currentX = this.targetX;
+        this.currentY = this.targetY;
       }
     }
   }
@@ -252,19 +302,33 @@ export class CanvasRenderer {
       ctx.fillRect(0, 0, w, h);
     }
 
-    // 2. Animate transitions with smooth fade-in and easing
-    this.currentX += (this.targetX - this.currentX) * 0.14;
-    this.currentY += (this.targetY - this.currentY) * 0.14;
-    this.scale += (this.targetScale - this.scale) * 0.10;
-    this.cueOpacity += (this.targetOpacity - this.cueOpacity) * 0.09;
+    const transType = this.style.transitionType || 'crossfade';
+    const speed = Math.max(0.1, Math.min(2.0, parseFloat(this.style.transitionSpeed) || 0.4));
+    const lerpRate = transType === 'appear' ? 1.0 : Math.max(0.025, Math.min(0.55, 0.055 / speed));
 
-    // 3. Draw Lyrics Text if present
-    if (this.activeCueText && !this.isBlank && this.cueOpacity > 0.001) {
-      this._renderText(ctx, this.activeCueText, this.currentX, this.currentY, w, h);
+    // 2. Animate transitions with smooth easing
+    this.currentX += (this.targetX - this.currentX) * Math.max(lerpRate, 0.15);
+    this.currentY += (this.targetY - this.currentY) * Math.max(lerpRate, 0.15);
+    this.scale += (this.targetScale - this.scale) * lerpRate;
+    this.cueOpacity += (this.targetOpacity - this.cueOpacity) * lerpRate;
+    if (this.slideOffsetY) {
+      this.slideOffsetY += (0 - this.slideOffsetY) * lerpRate;
+    }
+
+    // 3. Draw Outgoing previous text for smooth crossfade
+    if (this.prevCueText && this.prevCueOpacity > 0.005 && transType !== 'appear') {
+      this.prevCueOpacity += (0 - this.prevCueOpacity) * lerpRate;
+      this._renderText(ctx, this.prevCueText, this.prevX, this.prevY, w, h, this.prevCueOpacity, this.prevScale);
+    }
+
+    // 4. Draw Active cue lyrics text
+    if (this.activeCueText && !this.isBlank && this.cueOpacity > 0.005) {
+      this._renderText(ctx, this.activeCueText, this.currentX, this.currentY + (this.slideOffsetY || 0), w, h, this.cueOpacity, this.scale);
     }
   }
 
-  _renderText(ctx, rawText, posX, posY, canvasW, canvasH) {
+  _renderText(ctx, rawText, posX, posY, canvasW, canvasH, opacity = this.cueOpacity, scale = this.scale) {
+    if (!rawText || opacity <= 0.005) return;
     ctx.save();
 
     // Automatically strip punctuation marks when displaying cue on screen
@@ -288,10 +352,10 @@ export class CanvasRenderer {
     const lineHeight = this.style.fontSize * 1.35;
     const totalBlockHeight = lines.length * lineHeight;
 
-    // Transform for scale animation
+    // Transform for scale animation & opacity
     ctx.translate(posX, posY);
-    ctx.scale(this.scale, this.scale);
-    ctx.globalAlpha = Math.max(0, Math.min(1, this.cueOpacity));
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = Math.max(0, Math.min(1, opacity));
 
     const startY = - (totalBlockHeight / 2) + (lineHeight / 2);
 

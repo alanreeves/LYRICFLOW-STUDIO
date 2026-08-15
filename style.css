@@ -227,6 +227,31 @@
   box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
 }
 
+/* Transition Animation Buttons */
+.transition-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  color: #cbd5e1;
+  text-align: left;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.transition-type-btn:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(30, 41, 59, 0.8);
+}
+.transition-type-btn.active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: #6366f1;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
 /* Inputs, Selects, Sliders */
 .input-select, .input-text {
   background: rgba(15, 23, 42, 0.9);
