@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.24';
+export const APP_VERSION = '1.0.25';
 
 class App {
   constructor() {
@@ -1899,16 +1899,60 @@ class App {
 
     let selectedStyle = 'cyber_aurora';
     let selectedPalette = 'cyber_neon';
+    let modalSpeed = this.mediaPool.getVideoSpeed() || 1.0;
     let previewAnimFrame = null;
     let previewRunning = false;
 
+    const speedSlider = document.getElementById('ar-modal-speed-slider');
+    const speedVal = document.getElementById('ar-modal-speed-val');
+    const speedPresetBtns = document.querySelectorAll('.btn-ar-speed-preset');
+
     const previewCtx = previewCanvas?.getContext('2d');
+
+    const formatModalSpeed = (speed) => {
+      if (Math.abs(speed - 0.05) < 0.01) return '0.05x (Zen Ultra Slow)';
+      if (Math.abs(speed - 0.10) < 0.02) return '0.10x (Very Slow)';
+      if (Math.abs(speed - 0.25) < 0.02) return '0.25x (Slow)';
+      if (Math.abs(speed - 0.50) < 0.02) return '0.50x (Gentle)';
+      if (Math.abs(speed - 0.75) < 0.02) return '0.75x (Relaxed)';
+      if (Math.abs(speed - 1.00) < 0.02) return '1.00x (Normal)';
+      if (Math.abs(speed - 1.50) < 0.02) return '1.50x (Fast)';
+      if (Math.abs(speed - 2.00) < 0.02) return '2.00x (Rapid)';
+      return `${speed.toFixed(2)}x`;
+    };
+
+    const updateModalSpeedUI = (speed) => {
+      modalSpeed = Math.max(0.02, Math.min(2.0, parseFloat(speed) || 1.0));
+      if (speedSlider) speedSlider.value = modalSpeed;
+      if (speedVal) speedVal.textContent = formatModalSpeed(modalSpeed);
+
+      speedPresetBtns.forEach((btn) => {
+        const btnSpeed = parseFloat(btn.dataset.speed);
+        if (Math.abs(btnSpeed - modalSpeed) < 0.02) {
+          btn.classList.add('active', 'bg-brand-500/20', 'border-brand-500', 'text-white', 'font-bold');
+          btn.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-800');
+        } else {
+          btn.classList.remove('active', 'bg-brand-500/20', 'border-brand-500', 'text-white', 'font-bold');
+          btn.classList.add('bg-slate-900', 'text-slate-300', 'border-slate-800');
+        }
+      });
+    };
+
+    speedSlider?.addEventListener('input', (e) => {
+      updateModalSpeedUI(parseFloat(e.target.value));
+    });
+
+    speedPresetBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        updateModalSpeedUI(parseFloat(btn.dataset.speed));
+      });
+    });
 
     const updatePreviewLabel = () => {
       const sObj = ABSTRACT_STYLES.find(s => s.id === selectedStyle);
       const pObj = ABSTRACT_PALETTES[selectedPalette];
       if (previewLabel) {
-        previewLabel.textContent = `${sObj?.name || selectedStyle} • ${pObj?.name || selectedPalette}`;
+        previewLabel.textContent = `${sObj?.name || selectedStyle} • ${pObj?.name || selectedPalette} (${modalSpeed.toFixed(2)}x)`;
       }
     };
 
@@ -1973,6 +2017,7 @@ class App {
         });
       }
 
+      updateModalSpeedUI(modalSpeed);
       if (window.lucide) window.lucide.createIcons();
     };
 
@@ -2000,7 +2045,8 @@ class App {
           timeDomainData: null
         };
 
-        const mockAsset = { style: selectedStyle, colors: pal };
+        this.mediaPool.animTime += 0.015 * modalSpeed;
+        const mockAsset = { style: selectedStyle, colors: pal, speed: modalSpeed };
         this.mediaPool._drawAudioReactive(previewCtx, w, h, mockAsset, telem);
 
         previewAnimFrame = requestAnimationFrame(loop);
@@ -2019,6 +2065,7 @@ class App {
 
     const openModal = () => {
       if (!modal) return;
+      modalSpeed = this.mediaPool.getVideoSpeed() || 1.0;
       renderModalControls();
       updatePreviewLabel();
       modal.classList.remove('hidden');
@@ -2051,27 +2098,31 @@ class App {
       const pObj = ABSTRACT_PALETTES[selectedPalette];
       const name = `${sObj?.name || 'Audio Visuals'} (${pObj?.name || 'Neon'})`;
       
-      const asset = this.mediaPool.addAudioReactiveBackground(name, selectedStyle, selectedPalette);
+      this.mediaPool.setVideoSpeed(modalSpeed);
+      const asset = this.mediaPool.addAudioReactiveBackground(name, selectedStyle, selectedPalette, null, modalSpeed);
       this.mediaPool.setActiveAsset(asset.id);
       this._renderBgPool();
       this._syncStylePreview();
-      this.showToast(`Added ${name} to background pool`, 'success');
+      this._syncStudioSpeedUI(modalSpeed);
+      this.showToast(`Added ${name} (${modalSpeed.toFixed(2)}x) to pool`, 'success');
       closeModal();
     });
 
-    // Add all 6 styles
+    // Add all 5 styles
     addAllBtn?.addEventListener('click', () => {
       let firstAdded = null;
+      this.mediaPool.setVideoSpeed(modalSpeed);
       ABSTRACT_STYLES.forEach((style, idx) => {
         const palKeys = Object.keys(ABSTRACT_PALETTES);
         const palKey = palKeys[idx % palKeys.length];
-        const asset = this.mediaPool.addAudioReactiveBackground(style.name, style.id, palKey);
+        const asset = this.mediaPool.addAudioReactiveBackground(style.name, style.id, palKey, null, modalSpeed);
         if (!firstAdded) firstAdded = asset;
       });
       if (firstAdded) this.mediaPool.setActiveAsset(firstAdded.id);
       this._renderBgPool();
       this._syncStylePreview();
-      this.showToast('Added all Audio-Reactive styles to pool', 'success');
+      this._syncStudioSpeedUI(modalSpeed);
+      this.showToast(`Added all Audio-Reactive styles (${modalSpeed.toFixed(2)}x) to pool`, 'success');
       closeModal();
     });
   }
@@ -2110,45 +2161,53 @@ class App {
   }
 
   // ==========================================
-  // 12. VIDEO SPEED CONTROLS
+  // 12. VIDEO & VISUALIZER SPEED CONTROLS
   // ==========================================
-  _setupVideoSpeedControls() {
+  _syncStudioSpeedUI(speed) {
     const studioSlider = document.getElementById('studio-video-speed-slider');
     const studioVal = document.getElementById('studio-video-speed-val');
     const presetBtns = document.querySelectorAll('.btn-studio-speed-preset');
 
-    const formatSpeed = (speed) => {
-      if (Math.abs(speed - 0.125) < 0.005) return '0.125x (1/8 speed)';
-      if (Math.abs(speed - 0.25) < 0.005) return '0.25x (1/4 speed)';
-      if (Math.abs(speed - 0.5) < 0.005) return '0.50x (1/2 speed)';
-      if (Math.abs(speed - 0.75) < 0.005) return '0.75x (3/4 speed)';
-      if (Math.abs(speed - 1.0) < 0.005) return '1.00x (Normal speed)';
-      if (Math.abs(speed - 1.5) < 0.005) return '1.50x';
-      if (Math.abs(speed - 2.0) < 0.005) return '2.00x';
-      return `${speed.toFixed(2)}x`;
+    const formatSpeed = (s) => {
+      if (Math.abs(s - 0.05) < 0.01) return '0.05x (Zen Ultra Slow)';
+      if (Math.abs(s - 0.10) < 0.02) return '0.10x (Very Slow)';
+      if (Math.abs(s - 0.125) < 0.005) return '0.125x (1/8 speed)';
+      if (Math.abs(s - 0.25) < 0.02) return '0.25x (1/4 speed)';
+      if (Math.abs(s - 0.5) < 0.02) return '0.50x (1/2 speed)';
+      if (Math.abs(s - 0.75) < 0.02) return '0.75x (3/4 speed)';
+      if (Math.abs(s - 1.0) < 0.02) return '1.00x (Normal speed)';
+      if (Math.abs(s - 1.5) < 0.02) return '1.50x';
+      if (Math.abs(s - 2.0) < 0.02) return '2.00x';
+      return `${s.toFixed(2)}x`;
     };
+
+    const applied = this.mediaPool.setVideoSpeed(speed);
+    if (studioSlider) studioSlider.value = applied;
+    if (studioVal) studioVal.textContent = formatSpeed(applied);
+
+    presetBtns.forEach((btn) => {
+      const btnSpeed = parseFloat(btn.dataset.speed);
+      if (Math.abs(btnSpeed - applied) < 0.02) {
+        btn.classList.add('active', 'bg-brand-600', 'text-white', 'border-brand-500');
+        btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+      } else {
+        btn.classList.remove('active', 'bg-brand-600', 'text-white', 'border-brand-500');
+        btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+      }
+    });
+  }
+
+  _setupVideoSpeedControls() {
+    const studioSlider = document.getElementById('studio-video-speed-slider');
+    const presetBtns = document.querySelectorAll('.btn-studio-speed-preset');
 
     const updateSpeedUI = (speed, showFeedback = false) => {
       const parsedSpeed = Number(speed) || 1.0;
-      const applied = this.mediaPool.setVideoSpeed(parsedSpeed);
-      const formatted = formatSpeed(applied);
-
-      if (studioSlider) studioSlider.value = applied;
-      if (studioVal) studioVal.textContent = formatted;
-
-      presetBtns.forEach((btn) => {
-        const btnSpeed = parseFloat(btn.dataset.speed);
-        if (Math.abs(btnSpeed - applied) < 0.02) {
-          btn.classList.add('active', 'bg-brand-600', 'text-white', 'border-brand-500');
-          btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
-        } else {
-          btn.classList.remove('active', 'bg-brand-600', 'text-white', 'border-brand-500');
-          btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
-        }
-      });
+      this._syncStudioSpeedUI(parsedSpeed);
 
       if (showFeedback) {
-        this.showToast(`Background video speed: ${formatted}`, 'info', 1500);
+        const studioVal = document.getElementById('studio-video-speed-val');
+        this.showToast(`Background speed: ${studioVal?.textContent || parsedSpeed + 'x'}`, 'info', 1500);
       }
     };
 
@@ -2655,7 +2714,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.24').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.25').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

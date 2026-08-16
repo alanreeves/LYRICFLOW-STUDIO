@@ -51,7 +51,7 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
 
-  <link rel="stylesheet" href="style.css?v=1.0.24">
+  <link rel="stylesheet" href="style.css?v=1.0.25">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -928,24 +928,24 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
               <!-- Live Background selector cards -->
             </div>
 
-            <!-- Large Variable Video Speed Controller -->
+            <!-- Variable Background Motion & Video Speed Controller -->
             <div class="pt-2 border-t border-slate-800/80 space-y-2">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-semibold text-slate-300 flex items-center gap-1.5">
                   <i data-lucide="gauge" class="w-4 h-4 text-pink-400"></i>
-                  <span>Background Video Playback Speed:</span>
+                  <span>Background Motion & Playback Speed:</span>
                 </span>
                 <span id="studio-video-speed-val" class="font-mono font-bold text-sm text-pink-400">1.00x (Normal)</span>
               </div>
               
-              <!-- Smooth continuous slider (down to 1/8 speed 0.125x) -->
-              <input type="range" id="studio-video-speed-slider" min="0.125" max="2.0" step="0.005" value="1.0" class="slider-range w-full">
+              <!-- Smooth continuous slider (down to 0.02x ultra-slow) -->
+              <input type="range" id="studio-video-speed-slider" min="0.02" max="2.0" step="0.005" value="1.0" class="slider-range w-full">
 
               <div class="grid grid-cols-6 gap-1.5 pt-1">
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.125">1/8x</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.25">1/4x</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.5">1/2x</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.75">3/4x</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.05">0.05x (Zen)</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.10">0.10x (Slow)</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.25">0.25x</button>
+                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.5">0.50x</button>
                 <button type="button" class="btn-studio-speed-preset active py-1 text-[11px] font-semibold rounded bg-brand-600 text-white border border-brand-500 transition" data-speed="1.0">1.0x</button>
                 <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="1.5">1.5x</button>
               </div>
@@ -1193,6 +1193,26 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
             <!-- Dynamically populated palette pills -->
           </div>
         </div>
+
+        <!-- 3. Motion Speed & Flow Rate -->
+        <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="gauge" class="w-3.5 h-3.5 text-pink-400"></i>
+              <span>3. Motion Speed & Flow Rate</span>
+            </label>
+            <span id="ar-modal-speed-val" class="font-mono text-xs font-bold text-pink-400 px-2 py-0.5 rounded bg-pink-500/10 border border-pink-500/20">1.00x (Normal)</span>
+          </div>
+          <input type="range" id="ar-modal-speed-slider" min="0.02" max="2.0" step="0.005" value="1.0" class="slider-range w-full">
+          <div class="grid grid-cols-6 gap-1.5 pt-1">
+            <button type="button" class="btn-ar-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white transition" data-speed="0.05">0.05x (Zen)</button>
+            <button type="button" class="btn-ar-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white transition" data-speed="0.10">0.10x (Slow)</button>
+            <button type="button" class="btn-ar-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white transition" data-speed="0.25">0.25x</button>
+            <button type="button" class="btn-ar-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white transition" data-speed="0.50">0.50x</button>
+            <button type="button" class="btn-ar-speed-preset active py-1 text-[11px] font-semibold rounded bg-brand-500/20 border border-brand-500 text-white font-bold transition" data-speed="1.00">1.00x</button>
+            <button type="button" class="btn-ar-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white transition" data-speed="1.50">1.50x</button>
+          </div>
+        </div>
       </div>
 
       <!-- Action Footer -->
@@ -1373,7 +1393,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.24"></script>
+  <script type="module" src="app.js?v=1.0.25"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

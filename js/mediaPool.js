@@ -37,12 +37,15 @@ export class MediaPool {
   }
 
   setVideoSpeed(speed) {
-    const val = Math.max(0.125, Math.min(3.0, parseFloat(speed) || 1.0));
+    const val = Math.max(0.02, Math.min(3.0, parseFloat(speed) || 1.0));
     this.videoSpeed = Number(val.toFixed(3));
     this.assets.forEach((asset) => {
       if (asset.type === 'video' && asset.element) {
         asset.element.playbackRate = this.videoSpeed;
         asset.element.defaultPlaybackRate = this.videoSpeed;
+      }
+      if (asset.type === 'audio_reactive') {
+        asset.speed = this.videoSpeed;
       }
     });
     return this.videoSpeed;
@@ -361,7 +364,7 @@ export class MediaPool {
     return this.nextVideo();
   }
 
-  addAudioReactiveBackground(name, style = 'cyber_aurora', paletteName = 'cyber_neon', customColors = null) {
+  addAudioReactiveBackground(name, style = 'cyber_aurora', paletteName = 'cyber_neon', customColors = null, speed = null) {
     const id = 'ar_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
     const palette = customColors || (ABSTRACT_PALETTES[paletteName] ? ABSTRACT_PALETTES[paletteName].colors : ABSTRACT_PALETTES.cyber_neon.colors);
 
@@ -370,6 +373,7 @@ export class MediaPool {
       type: 'audio_reactive',
       style,
       paletteName,
+      speed: (speed !== null && !isNaN(speed)) ? Number(speed) : this.videoSpeed,
       name: name || (ABSTRACT_STYLES.find(s => s.id === style)?.name || 'Audio Reactive Background'),
       colors: palette,
       url: null,
@@ -424,20 +428,17 @@ export class MediaPool {
     // 1. Audio Reactive: Cyber Liquid Aurora (Cyber Neon)
     this.addAudioReactiveBackground('Cyber Liquid Aurora', 'cyber_aurora', 'cyber_neon');
 
-    // 2. Audio Reactive: Neon Synthwave Horizon (Synthwave Sunset)
-    this.addAudioReactiveBackground('Neon Synthwave Horizon', 'synthwave_horizon', 'synthwave');
+    // 2. Audio Reactive: Fluid Waveform Ribbons (Oceanic Abyss)
+    this.addAudioReactiveBackground('Fluid Waveform Ribbons', 'waveform_ribbons', 'oceanic_abyss');
 
-    // 3. Audio Reactive: Radial Pulsing Iris (Solar Flare)
-    this.addAudioReactiveBackground('Radial Pulsing Iris', 'radial_iris', 'solar_flare');
+    // 3. Audio Reactive: Ethereal Silk Streams (Synthwave Sunset)
+    this.addAudioReactiveBackground('Ethereal Silk Streams', 'ethereal_silk', 'synthwave');
 
-    // 4. Audio Reactive: Cosmic Particle Vortex (Oceanic Abyss)
-    this.addAudioReactiveBackground('Cosmic Particle Vortex', 'particle_vortex', 'oceanic_abyss');
+    // 4. Audio Reactive: Deep Ambient Nebula (Solar Flare)
+    this.addAudioReactiveBackground('Deep Ambient Nebula', 'plasma_nebula', 'solar_flare');
 
-    // 5. Audio Reactive: Floating Geometric Prisms (Emerald Matrix)
-    this.addAudioReactiveBackground('Floating Geometric Prisms', 'geometric_prisms', 'emerald_matrix');
-
-    // 6. Audio Reactive: Fluid Waveform Ribbons (Cyber Neon)
-    this.addAudioReactiveBackground('Fluid Waveform Ribbons', 'waveform_ribbons', 'cyber_neon');
+    // 5. Audio Reactive: Harmonic Tidal Swells (Emerald Matrix)
+    this.addAudioReactiveBackground('Harmonic Tidal Swells', 'harmonic_tides', 'emerald_matrix');
 
     if (this.assets.length > 0) {
       this.setActiveAsset(this.assets[0].id);
@@ -616,7 +617,8 @@ export class MediaPool {
     }
 
     const active = this.getActiveAsset();
-    this.animTime += 0.015 * this.videoSpeed;
+    const currentSpeed = (active && typeof active.speed === 'number' && !isNaN(active.speed)) ? active.speed : this.videoSpeed;
+    this.animTime += 0.015 * currentSpeed;
 
     if (!active) {
       // Default dark backdrop
