@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.23';
+export const APP_VERSION = '1.0.24';
 
 class App {
   constructor() {
@@ -2071,7 +2071,7 @@ class App {
       if (firstAdded) this.mediaPool.setActiveAsset(firstAdded.id);
       this._renderBgPool();
       this._syncStylePreview();
-      this.showToast('Added all 6 Audio-Reactive styles to pool', 'success');
+      this.showToast('Added all Audio-Reactive styles to pool', 'success');
       closeModal();
     });
   }
@@ -2655,7 +2655,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.23').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.24').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

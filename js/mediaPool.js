@@ -9,11 +9,10 @@ export const ABSTRACT_PALETTES = {
 
 export const ABSTRACT_STYLES = [
   { id: 'cyber_aurora', name: 'Cyber Liquid Aurora', desc: 'Morphing glowing orbs and fluid liquid mesh pulsating on bass' },
-  { id: 'synthwave_horizon', name: 'Neon Synthwave Horizon', desc: 'Retro perspective speed grid with reactive audio frequency terrain' },
-  { id: 'radial_iris', name: 'Radial Pulsing Iris', desc: 'Center energy core with 360° radiating circular spectrum rings' },
-  { id: 'particle_vortex', name: 'Cosmic Particle Vortex', desc: 'Orbiting stardust swarm with beat-triggered particle bursts' },
-  { id: 'geometric_prisms', name: 'Floating Geometric Prisms', desc: '3D faceted glowing prisms rotating and bouncing with frequency bands' },
-  { id: 'waveform_ribbons', name: 'Fluid Waveform Ribbons', desc: 'Layered silky sine waves oscillating with live audio time-domain data' }
+  { id: 'waveform_ribbons', name: 'Fluid Waveform Ribbons', desc: 'Layered silky sine waves oscillating with live audio time-domain data' },
+  { id: 'ethereal_silk', name: 'Ethereal Silk Streams', desc: 'Translucent flowing silk ribbons drifting gracefully with harmonic audio' },
+  { id: 'plasma_nebula', name: 'Deep Ambient Nebula', desc: 'Velvety glowing ambient cloud fields and chromatic plasma breathing with music' },
+  { id: 'harmonic_tides', name: 'Harmonic Tidal Swells', desc: 'Cascading luminous fluid swells undulating with acoustic depth and bass' }
 ];
 
 export class MediaPool {
@@ -32,34 +31,9 @@ export class MediaPool {
     // Procedural animation time counter
     this.animTime = 0;
 
-    // 3D Geometric Visualizer Rotation State
-    this.geomRotX = 0;
-    this.geomRotY = 0;
-    this.geomRotZ = 0;
-
-    // Particle Swarm Pool
-    this._initParticlePool();
-
     // Background playback speed rate (0.125x [1/8 speed] - 3.0x)
     this.videoSpeed = 1.0;
     this.isPlaying = false;
-  }
-
-  _initParticlePool() {
-    this.particles = [];
-    const count = 90;
-    for (let i = 0; i < count; i++) {
-      this.particles.push({
-        x: Math.random(),
-        y: Math.random(),
-        radius: 1.5 + Math.random() * 3.5,
-        angle: Math.random() * Math.PI * 2,
-        dist: 0.08 + Math.random() * 0.44,
-        speed: 0.003 + Math.random() * 0.008,
-        baseAlpha: 0.25 + Math.random() * 0.65,
-        colorIndex: (i % 4) + 1
-      });
-    }
   }
 
   setVideoSpeed(speed) {
@@ -673,20 +647,17 @@ export class MediaPool {
     const colors = asset.colors || ABSTRACT_PALETTES.cyber_neon.colors;
 
     switch (style) {
-      case 'synthwave_horizon':
-        this._drawSynthwaveHorizon(ctx, width, height, colors, audio);
-        break;
-      case 'radial_iris':
-        this._drawRadialIris(ctx, width, height, colors, audio);
-        break;
-      case 'particle_vortex':
-        this._drawParticleVortex(ctx, width, height, colors, audio);
-        break;
-      case 'geometric_prisms':
-        this._drawGeometricPrisms(ctx, width, height, colors, audio);
-        break;
       case 'waveform_ribbons':
         this._drawWaveformRibbons(ctx, width, height, colors, audio);
+        break;
+      case 'ethereal_silk':
+        this._drawEtherealSilk(ctx, width, height, colors, audio);
+        break;
+      case 'plasma_nebula':
+        this._drawPlasmaNebula(ctx, width, height, colors, audio);
+        break;
+      case 'harmonic_tides':
+        this._drawHarmonicTides(ctx, width, height, colors, audio);
         break;
       case 'cyber_aurora':
       default:
@@ -788,382 +759,7 @@ export class MediaPool {
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Neon Synthwave Horizon Visualizer
-  _drawSynthwaveHorizon(ctx, width, height, colors, audio) {
-    const bass = audio ? audio.bass : 0;
-    const beat = audio ? audio.beat : 0;
-    const vol = audio ? audio.volume : 0;
-    const freq = audio ? audio.frequencyData : null;
-
-    const horizonY = height * 0.58;
-    const cx = width / 2;
-
-    // Sky gradient
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-    skyGrad.addColorStop(0, colors[0]);
-    skyGrad.addColorStop(1, colors[1]);
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, width, horizonY);
-
-    // Glowing Synthwave Sun
-    const sunRadius = Math.min(width, height) * (0.16 + bass * 0.05 + beat * 0.03);
-    const sunGrad = ctx.createLinearGradient(cx, horizonY - sunRadius * 1.5, cx, horizonY + sunRadius * 0.5);
-    sunGrad.addColorStop(0, colors[2] || '#f59e0b');
-    sunGrad.addColorStop(1, colors[4] || colors[2] || '#ec4899');
-    
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, horizonY, sunRadius, Math.PI, 0, false);
-    ctx.fillStyle = sunGrad;
-    ctx.fill();
-
-    // Sun horizontal scan lines
-    ctx.fillStyle = colors[0];
-    const sliceCount = 8;
-    for (let i = 1; i <= sliceCount; i++) {
-      const sliceH = (i / sliceCount) * 4 + 1;
-      const sliceY = horizonY - (i * (sunRadius / (sliceCount + 1)));
-      ctx.fillRect(cx - sunRadius - 10, sliceY, (sunRadius + 10) * 2, sliceH);
-    }
-    ctx.restore();
-
-    // Horizon frequency spectrum bars
-    const barCount = 48;
-    const barW = (width / barCount) * 0.8;
-    const barGap = width / barCount;
-    ctx.fillStyle = colors[3] || colors[2];
-
-    for (let i = 0; i < barCount; i++) {
-      let hVal = 8;
-      if (freq && freq.length > 0) {
-        const bin = Math.floor(Math.abs(i - barCount / 2) * (freq.length / (barCount / 2)));
-        hVal = Math.max(4, (freq[bin % freq.length] / 255) * (height * 0.22));
-      } else {
-        hVal = Math.max(4, Math.sin(this.animTime * 3 + i * 0.25) * 25 + 20);
-      }
-      const bx = i * barGap + (barGap - barW) / 2;
-      ctx.fillRect(bx, horizonY - hVal, barW, hVal);
-    }
-
-    // Ground Grid backdrop
-    const groundGrad = ctx.createLinearGradient(0, horizonY, 0, height);
-    groundGrad.addColorStop(0, '#030108');
-    groundGrad.addColorStop(1, colors[0]);
-    ctx.fillStyle = groundGrad;
-    ctx.fillRect(0, horizonY, width, height - horizonY);
-
-    // Perspective 3D Grid Lines
-    ctx.strokeStyle = colors[2];
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.45;
-
-    // Radiating vertical perspective lines
-    const lineCount = 18;
-    for (let i = -lineCount; i <= lineCount; i++) {
-      ctx.beginPath();
-      ctx.moveTo(cx, horizonY);
-      const bottomX = cx + (i * (width / (lineCount * 0.7)));
-      ctx.lineTo(bottomX, height);
-      ctx.stroke();
-    }
-
-    // Moving horizontal grid lines (depth)
-    const gridSpeed = (this.animTime * 1.6 + vol * 2.2) % 1;
-    const hLineCount = 9;
-    for (let i = 0; i < hLineCount; i++) {
-      const norm = ((i + gridSpeed) / hLineCount);
-      const y = horizonY + Math.pow(norm, 2.2) * (height - horizonY);
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1.0;
-
-    // Glowing horizon laser line
-    ctx.strokeStyle = colors[3] || '#38bdf8';
-    ctx.lineWidth = 3 + beat * 3;
-    ctx.beginPath();
-    ctx.moveTo(0, horizonY);
-    ctx.lineTo(width, horizonY);
-    ctx.stroke();
-
-    // Dark Vignette
-    const vig = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.35, width / 2, height / 2, Math.max(width, height) * 0.75);
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.6)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // 3. Radial Pulsing Iris Visualizer
-  _drawRadialIris(ctx, width, height, colors, audio) {
-    const bass = audio ? audio.bass : 0;
-    const mid = audio ? audio.mid : 0;
-    const treble = audio ? audio.treble : 0;
-    const beat = audio ? audio.beat : 0;
-    const freq = audio ? audio.frequencyData : null;
-
-    const cx = width / 2;
-    const cy = height / 2;
-    const minDim = Math.min(width, height);
-
-    ctx.fillStyle = colors[0];
-    ctx.fillRect(0, 0, width, height);
-
-    // Glowing Core
-    const coreR = minDim * (0.08 + beat * 0.05 + bass * 0.04);
-    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 2.2);
-    coreGrad.addColorStop(0, colors[2] || '#f59e0b');
-    coreGrad.addColorStop(0.5, colors[1] || '#dc2626');
-    coreGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, coreR * 2.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 360° Circular Spectrum Bars
-    const segments = 64;
-    const baseRadius = minDim * (0.16 + bass * 0.03);
-    const angleStep = (Math.PI * 2) / segments;
-
-    for (let i = 0; i < segments; i++) {
-      const angle = i * angleStep + this.animTime * 0.2;
-      let barLen = 15;
-      if (freq && freq.length > 0) {
-        const bin = Math.floor(i * (freq.length / segments));
-        barLen = 10 + (freq[bin % freq.length] / 255) * (minDim * 0.24);
-      } else {
-        barLen = 12 + (Math.sin(this.animTime * 2.5 + i * 0.35) + 1) * 20;
-      }
-
-      const xStart = cx + Math.cos(angle) * baseRadius;
-      const yStart = cy + Math.sin(angle) * baseRadius;
-      const xEnd = cx + Math.cos(angle) * (baseRadius + barLen);
-      const yEnd = cy + Math.sin(angle) * (baseRadius + barLen);
-
-      ctx.strokeStyle = colors[(i % (colors.length - 1)) + 1];
-      ctx.lineWidth = 3 + treble * 2;
-      ctx.beginPath();
-      ctx.moveTo(xStart, yStart);
-      ctx.lineTo(xEnd, yEnd);
-      ctx.stroke();
-    }
-
-    // Outer Rotating Mandala/Dashed Rings
-    ctx.save();
-    ctx.strokeStyle = colors[3] || colors[1];
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 12]);
-    ctx.beginPath();
-    ctx.arc(cx, cy, baseRadius * 1.8 + mid * 20, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.strokeStyle = colors[2];
-    ctx.setLineDash([14, 18]);
-    ctx.beginPath();
-    ctx.arc(cx, cy, baseRadius * 2.3 + bass * 30, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-
-    // Vignette
-    const vig = ctx.createRadialGradient(cx, cy, minDim * 0.35, cx, cy, minDim * 0.75);
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.65)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // 4. Cosmic Particle Vortex Visualizer
-  _drawParticleVortex(ctx, width, height, colors, audio) {
-    const bass = audio ? audio.bass : 0;
-    const mid = audio ? audio.mid : 0;
-    const treble = audio ? audio.treble : 0;
-    const beat = audio ? audio.beat : 0;
-    const vol = audio ? audio.volume : 0;
-
-    const cx = width / 2;
-    const cy = height / 2;
-    const minDim = Math.min(width, height);
-
-    ctx.fillStyle = colors[0];
-    ctx.fillRect(0, 0, width, height);
-
-    const speedBoost = 1.0 + vol * 3.5 + beat * 2.5;
-
-    // Update & draw particles
-    const drawnPts = [];
-    this.particles.forEach((p) => {
-      p.angle += p.speed * speedBoost;
-      const currentDist = p.dist * minDim * (1.0 + bass * 0.45);
-      const px = cx + Math.cos(p.angle) * currentDist;
-      const py = cy + Math.sin(p.angle) * currentDist;
-
-      drawnPts.push({ x: px, y: py, colorIndex: p.colorIndex });
-
-      // Draw particle glow
-      const pColor = colors[p.colorIndex % colors.length] || '#38bdf8';
-      const rad = p.radius * (1.0 + treble * 1.2 + beat * 0.8);
-      
-      ctx.fillStyle = pColor;
-      ctx.beginPath();
-      ctx.arc(px, py, rad, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Draw constellation link lines between close particles
-    const linkDist = minDim * (0.09 + mid * 0.05);
-    ctx.lineWidth = 1;
-    for (let i = 0; i < drawnPts.length; i++) {
-      for (let j = i + 1; j < drawnPts.length; j++) {
-        const dx = drawnPts[i].x - drawnPts[j].x;
-        const dy = drawnPts[i].y - drawnPts[j].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < linkDist) {
-          const alpha = (1 - dist / linkDist) * (0.35 + mid * 0.5);
-          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-          ctx.beginPath();
-          ctx.moveTo(drawnPts[i].x, drawnPts[i].y);
-          ctx.lineTo(drawnPts[j].x, drawnPts[j].y);
-          ctx.stroke();
-        }
-      }
-    }
-
-    // Center Pulsing Stardust Nova
-    const novaR = minDim * (0.07 + beat * 0.08 + bass * 0.05);
-    const novaGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, novaR * 2.5);
-    novaGrad.addColorStop(0, colors[1] || '#38bdf8');
-    novaGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = novaGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, novaR * 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Vignette
-    const vig = ctx.createRadialGradient(cx, cy, minDim * 0.35, cx, cy, minDim * 0.75);
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.6)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // 5. Floating Geometric Prisms Visualizer
-  _drawGeometricPrisms(ctx, width, height, colors, audio) {
-    const bass = audio ? audio.bass : 0;
-    const mid = audio ? audio.mid : 0;
-    const treble = audio ? audio.treble : 0;
-    const beat = audio ? audio.beat : 0;
-
-    const cx = width / 2;
-    const cy = height / 2;
-    const minDim = Math.min(width, height);
-
-    ctx.fillStyle = colors[0];
-    ctx.fillRect(0, 0, width, height);
-
-    // Update 3D Euler angles
-    this.geomRotX += 0.008 + bass * 0.025;
-    this.geomRotY += 0.012 + mid * 0.020;
-    this.geomRotZ += 0.006 + treble * 0.018;
-
-    const scale = minDim * (0.24 + beat * 0.08 + bass * 0.06);
-
-    // 3D Cube Vertices
-    const vertices = [
-      [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
-      [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
-    ];
-
-    // Edges
-    const edges = [
-      [0, 1], [1, 2], [2, 3], [3, 0],
-      [4, 5], [5, 6], [6, 7], [7, 4],
-      [0, 4], [1, 5], [2, 6], [3, 7]
-    ];
-
-    const radX = this.geomRotX;
-    const radY = this.geomRotY;
-    const radZ = this.geomRotZ;
-
-    const projected = vertices.map(([x, y, z]) => {
-      // Rotate Y
-      let x1 = x * Math.cos(radY) + z * Math.sin(radY);
-      let y1 = y;
-      let z1 = -x * Math.sin(radY) + z * Math.cos(radY);
-
-      // Rotate X
-      let x2 = x1;
-      let y2 = y1 * Math.cos(radX) - z1 * Math.sin(radX);
-      let z2 = y1 * Math.sin(radX) + z1 * Math.cos(radX);
-
-      // Rotate Z
-      let x3 = x2 * Math.cos(radZ) - y2 * Math.sin(radZ);
-      let y3 = x2 * Math.sin(radZ) + y2 * Math.cos(radZ);
-      let z3 = z2;
-
-      // Perspective projection
-      const fov = 3.2;
-      const pz = z3 + fov;
-      const projX = cx + (x3 / pz) * scale * 2.2;
-      const projY = cy + (y3 / pz) * scale * 2.2;
-
-      return { x: projX, y: projY };
-    });
-
-    // Draw illuminated Faces
-    const faces = [
-      [0, 1, 2, 3], [4, 5, 6, 7],
-      [0, 1, 5, 4], [2, 3, 7, 6],
-      [1, 2, 6, 5], [0, 3, 7, 4]
-    ];
-
-    faces.forEach((f, idx) => {
-      ctx.fillStyle = colors[(idx % (colors.length - 1)) + 1] + '26'; // 15% opacity hex
-      ctx.beginPath();
-      ctx.moveTo(projected[f[0]].x, projected[f[0]].y);
-      for (let i = 1; i < f.length; i++) {
-        ctx.lineTo(projected[f[i]].x, projected[f[i]].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-    });
-
-    // Draw glowing edges
-    ctx.strokeStyle = colors[1] || '#10b981';
-    ctx.lineWidth = 3 + treble * 3;
-    edges.forEach(([i, j]) => {
-      ctx.beginPath();
-      ctx.moveTo(projected[i].x, projected[i].y);
-      ctx.lineTo(projected[j].x, projected[j].y);
-      ctx.stroke();
-    });
-
-    // Orbiting Satellite Nodes
-    const satCount = 4;
-    for (let s = 0; s < satCount; s++) {
-      const sAngle = this.animTime * 1.5 + (s * (Math.PI * 2 / satCount));
-      const sDist = minDim * (0.36 + Math.sin(this.animTime + s) * 0.05);
-      const sx = cx + Math.cos(sAngle) * sDist;
-      const sy = cy + Math.sin(sAngle) * (sDist * 0.5);
-
-      ctx.fillStyle = colors[s + 1] || colors[1];
-      ctx.beginPath();
-      ctx.arc(sx, sy, 6 + beat * 6, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Vignette
-    const vig = ctx.createRadialGradient(cx, cy, minDim * 0.35, cx, cy, minDim * 0.75);
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.65)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // 6. Fluid Waveform Ribbons Visualizer
+  // 2. Fluid Waveform Ribbons Visualizer
   _drawWaveformRibbons(ctx, width, height, colors, audio) {
     const bass = audio ? audio.bass : 0;
     const mid = audio ? audio.mid : 0;
@@ -1222,6 +818,195 @@ export class MediaPool {
     const vig = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.35, width / 2, height / 2, Math.max(width, height) * 0.75);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // 3. Ethereal Silk Streams Visualizer
+  _drawEtherealSilk(ctx, width, height, colors, audio) {
+    const bass = audio ? audio.bass : 0;
+    const mid = audio ? audio.mid : 0;
+    const treble = audio ? audio.treble : 0;
+    const vol = audio ? audio.volume : 0;
+
+    // Dark base
+    ctx.fillStyle = colors[0] || '#050711';
+    ctx.fillRect(0, 0, width, height);
+
+    const ribbonCount = 4;
+    const t = this.animTime;
+
+    for (let r = 0; r < ribbonCount; r++) {
+      const baseY = height * (0.35 + r * 0.12);
+      const amp = (height * 0.08 + bass * (height * 0.12)) * (1 + r * 0.2);
+      const freq = 0.0018 + r * 0.0005;
+      const speed = t * (0.5 + r * 0.25);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      ctx.lineTo(0, baseY);
+
+      const step = 25;
+      for (let x = 0; x <= width; x += step) {
+        const yOffset = Math.sin(x * freq + speed) * amp +
+                        Math.cos(x * freq * 1.7 - speed * 0.7) * (amp * 0.45) +
+                        Math.sin(x * 0.004 + speed * 1.3) * (amp * (0.15 + treble * 0.2));
+        ctx.lineTo(x, baseY + yOffset);
+      }
+
+      ctx.lineTo(width, height);
+      ctx.closePath();
+
+      const color = colors[(r % (colors.length - 1)) + 1] || '#ec4899';
+      const grad = ctx.createLinearGradient(0, baseY - amp, width * 0.7, height);
+      grad.addColorStop(0, color);
+      grad.addColorStop(0.6, colors[((r + 1) % (colors.length - 1)) + 1] || color);
+      grad.addColorStop(1, 'transparent');
+
+      ctx.globalAlpha = 0.28 + mid * 0.22;
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Glowing silk edge highlight
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8 + vol * 1.8;
+      ctx.globalAlpha = 0.65;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Contrast Vignette
+    const vig = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.35, width / 2, height / 2, Math.max(width, height) * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // 4. Deep Ambient Nebula Visualizer
+  _drawPlasmaNebula(ctx, width, height, colors, audio) {
+    const bass = audio ? audio.bass : 0;
+    const mid = audio ? audio.mid : 0;
+    const treble = audio ? audio.treble : 0;
+    const beat = audio ? audio.beat : 0;
+
+    const t = this.animTime;
+    const maxDim = Math.max(width, height);
+
+    ctx.fillStyle = colors[0] || '#050711';
+    ctx.fillRect(0, 0, width, height);
+
+    // Drifting chromatic nebula centroids
+    const nodes = [
+      { x: 0.35 + 0.22 * Math.sin(t * 0.42), y: 0.40 + 0.20 * Math.cos(t * 0.35), c: colors[1], r: 0.55 + bass * 0.3 },
+      { x: 0.68 + 0.20 * Math.cos(t * 0.38 + 1.2), y: 0.60 + 0.22 * Math.sin(t * 0.48 + 1.0), c: colors[2], r: 0.50 + mid * 0.28 },
+      { x: 0.50 + 0.25 * Math.sin(t * 0.55 + 2.4), y: 0.30 + 0.22 * Math.cos(t * 0.40 + 2.0), c: colors[3] || colors[1], r: 0.45 + treble * 0.25 },
+      { x: 0.42 + 0.18 * Math.cos(t * 0.60 + 3.5), y: 0.72 + 0.18 * Math.sin(t * 0.52 + 3.0), c: colors[4] || colors[2], r: 0.48 + bass * 0.25 }
+    ];
+
+    nodes.forEach((node) => {
+      if (!node.c) return;
+      const nx = width * node.x;
+      const ny = height * node.y;
+      const nr = maxDim * node.r;
+
+      const grad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+      grad.addColorStop(0, node.c);
+      grad.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+    });
+
+    // Center pulsating harmonic core
+    if (beat > 0.05 || bass > 0.3) {
+      const coreR = maxDim * (0.35 + beat * 0.25 + bass * 0.15);
+      const coreGrad = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, coreR);
+      coreGrad.addColorStop(0, colors[1] || '#4f46e5');
+      coreGrad.addColorStop(1, 'transparent');
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = coreGrad;
+      ctx.fillRect(0, 0, width, height);
+      ctx.globalAlpha = 1.0;
+    }
+
+    // Contrast Vignette
+    const vig = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.3, width / 2, height / 2, maxDim * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // 5. Harmonic Tidal Swells Visualizer
+  _drawHarmonicTides(ctx, width, height, colors, audio) {
+    const bass = audio ? audio.bass : 0;
+    const mid = audio ? audio.mid : 0;
+    const treble = audio ? audio.treble : 0;
+    const vol = audio ? audio.volume : 0;
+    const timeData = audio ? audio.timeDomainData : null;
+
+    ctx.fillStyle = colors[0] || '#050711';
+    ctx.fillRect(0, 0, width, height);
+
+    const swellCount = 4;
+    const t = this.animTime;
+
+    for (let s = 0; s < swellCount; s++) {
+      const baseY = height * (0.48 + s * 0.10);
+      const waveFreq = 0.0015 + s * 0.0004;
+      const speed = t * (0.6 + s * 0.28);
+      const baseAmp = (height * 0.06 + bass * (height * 0.12)) * (1 + (s % 2) * 0.3);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      ctx.lineTo(0, baseY);
+
+      const step = 20;
+      for (let x = 0; x <= width; x += step) {
+        let liveWarp = 0;
+        if (timeData && timeData.length > 0) {
+          const sIdx = Math.floor((x / width) * timeData.length);
+          liveWarp = ((timeData[sIdx % timeData.length] - 128) / 128) * (height * 0.05);
+        }
+
+        const y = baseY +
+                  Math.sin(x * waveFreq + speed) * baseAmp +
+                  Math.cos(x * waveFreq * 1.4 - speed * 0.8) * (baseAmp * 0.35) +
+                  Math.sin(x * 0.003 - speed * 1.1) * (baseAmp * (0.15 + treble * 0.15)) +
+                  liveWarp;
+        ctx.lineTo(x, y);
+      }
+
+      ctx.lineTo(width, height);
+      ctx.closePath();
+
+      const color = colors[(s % (colors.length - 1)) + 1] || '#06b6d4';
+      const grad = ctx.createLinearGradient(0, baseY - baseAmp, 0, height);
+      grad.addColorStop(0, color);
+      grad.addColorStop(0.7, colors[((s + 2) % (colors.length - 1)) + 1] || color);
+      grad.addColorStop(1, 'transparent');
+
+      ctx.globalAlpha = 0.30 + mid * 0.20;
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Glowing swell crest
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8 + vol * 2;
+      ctx.globalAlpha = 0.70;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Contrast Vignette
+    const vig = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.35, width / 2, height / 2, Math.max(width, height) * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.65)');
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, width, height);
   }

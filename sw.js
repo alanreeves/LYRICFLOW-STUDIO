@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.23';
+const APP_VERSION = '1.0.24';
 const CACHE_NAME = `lyricflow-studio-v${APP_VERSION}`;
 
 const STATIC_ASSETS = [
