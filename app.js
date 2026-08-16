@@ -2,12 +2,12 @@
  * LyricFlow Studio - Main Application Controller
  */
 import { AudioManager } from './js/audioManager.js';
-import { MediaPool } from './js/mediaPool.js';
+import { MediaPool, ABSTRACT_PALETTES, ABSTRACT_STYLES } from './js/mediaPool.js';
 import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.22';
+export const APP_VERSION = '1.0.23';
 
 class App {
   constructor() {
@@ -29,8 +29,8 @@ class App {
     this.masterCanvas = document.getElementById('master-canvas');
     this.styleCanvas = document.getElementById('style-preview-canvas');
 
-    this.renderer = new CanvasRenderer(this.masterCanvas, this.mediaPool);
-    this.stylePreviewRenderer = new CanvasRenderer(this.styleCanvas, this.mediaPool);
+    this.renderer = new CanvasRenderer(this.masterCanvas, this.mediaPool, this.audio);
+    this.stylePreviewRenderer = new CanvasRenderer(this.styleCanvas, this.mediaPool, this.audio);
     this.recorder = new VideoRecorder(this.masterCanvas, this.audio);
 
     // Sync slide indicator on slide changes
@@ -58,6 +58,7 @@ class App {
     this._setupProjectPersistenceControls();
     this._setupPwaInstall();
     this._setupSettingsMenu();
+    this._setupAudioReactiveModal();
     this._setupServiceWorker();
     this._checkAppVersionUpdate();
 
@@ -517,6 +518,11 @@ class App {
       : this.mediaPool.assets;
 
     displayAssets.forEach((asset, idx) => {
+      const isAudioReactive = asset.type === 'audio_reactive';
+      const eqBadgePool = isAudioReactive ? '<span class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-pink-500/80 text-[8px] font-mono text-white font-bold">⚡ EQ</span>' : '';
+      const eqBadgeStrip = isAudioReactive ? '<span class="absolute bottom-0.5 right-0.5 px-1 py-0.5 rounded bg-pink-500/80 text-[7px] font-mono text-white font-bold">⚡ EQ</span>' : '';
+      const eqBadgeStudio = isAudioReactive ? '<span class="absolute top-0 right-0 px-1 rounded-bl bg-pink-500/80 text-[7px] font-mono text-white font-bold">⚡ EQ</span>' : '';
+
       // Step 1 Pool Card
       const item = document.createElement('div');
       const isCurrentActive = this.mediaPool.slideshowMode
@@ -530,6 +536,7 @@ class App {
           <span class="text-[10px] text-white font-medium truncate">${asset.name}</span>
         </div>
         <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-mono text-white font-bold">${this.mediaPool.slideshowMode ? 'S' + (idx + 1) : idx + 1}</span>
+        ${eqBadgePool}
       `;
       item.addEventListener('click', () => {
         if (this.mediaPool.slideshowMode) {
@@ -546,7 +553,7 @@ class App {
         const stripItem = document.createElement('button');
         stripItem.type = 'button';
         stripItem.className = `w-14 h-9 rounded-lg overflow-hidden border-2 transition flex-shrink-0 relative ${isCurrentActive ? 'border-brand-500 ring-2 ring-brand-500/30' : 'border-slate-700 opacity-60 hover:opacity-100'}`;
-        stripItem.innerHTML = `<img src="${asset.thumbnail}" class="w-full h-full object-cover">`;
+        stripItem.innerHTML = `<img src="${asset.thumbnail}" class="w-full h-full object-cover">${eqBadgeStrip}`;
         stripItem.addEventListener('click', () => {
           if (this.mediaPool.slideshowMode) {
             this.mediaPool.setSlideIndex(idx);
@@ -568,6 +575,7 @@ class App {
           <div class="w-10 h-7 rounded overflow-hidden relative">
             <img src="${asset.thumbnail}" class="w-full h-full object-cover">
             <span class="absolute bottom-0 right-0 px-1 rounded-tl bg-black/80 text-[8px] font-mono text-white font-bold">${this.mediaPool.slideshowMode ? 'S' + (idx + 1) : idx + 1}</span>
+            ${eqBadgeStudio}
           </div>
           <span class="text-xs font-medium truncate max-w-[90px] pr-1">${asset.name}</span>
         `;
@@ -1874,7 +1882,202 @@ class App {
   }
 
   // ==========================================
-  // 11. VERSION UPDATE NOTIFICATION POPUP
+  // 11. AUDIO REACTIVE VISUALS PICKER MODAL
+  // ==========================================
+  _setupAudioReactiveModal() {
+    const modal = document.getElementById('audio-reactive-modal');
+    const openBtn = document.getElementById('btn-open-audio-reactive-modal');
+    const closeBtn = document.getElementById('btn-close-audio-reactive-modal');
+    const closeFooterBtn = document.getElementById('btn-close-ar-modal-footer');
+    const backdrop = document.getElementById('audio-reactive-backdrop');
+    const addSingleBtn = document.getElementById('btn-ar-modal-add-single');
+    const addAllBtn = document.getElementById('btn-ar-modal-add-all-presets');
+    const previewCanvas = document.getElementById('audio-reactive-modal-preview-canvas');
+    const previewLabel = document.getElementById('ar-modal-preview-label');
+    const stylesGrid = document.getElementById('ar-styles-grid');
+    const palettesGrid = document.getElementById('ar-palettes-grid');
+
+    let selectedStyle = 'cyber_aurora';
+    let selectedPalette = 'cyber_neon';
+    let previewAnimFrame = null;
+    let previewRunning = false;
+
+    const previewCtx = previewCanvas?.getContext('2d');
+
+    const updatePreviewLabel = () => {
+      const sObj = ABSTRACT_STYLES.find(s => s.id === selectedStyle);
+      const pObj = ABSTRACT_PALETTES[selectedPalette];
+      if (previewLabel) {
+        previewLabel.textContent = `${sObj?.name || selectedStyle} • ${pObj?.name || selectedPalette}`;
+      }
+    };
+
+    const renderModalControls = () => {
+      // 1. Populate Styles Grid
+      if (stylesGrid) {
+        stylesGrid.innerHTML = '';
+        ABSTRACT_STYLES.forEach(style => {
+          const isSelected = style.id === selectedStyle;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `p-3 rounded-xl border text-left transition flex flex-col justify-between gap-2 cursor-pointer ${
+            isSelected
+              ? 'bg-brand-500/20 border-brand-500 text-white ring-2 ring-brand-500/30'
+              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+          }`;
+          btn.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold">${style.name}</span>
+              ${isSelected ? '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-brand-400"></i>' : ''}
+            </div>
+            <p class="text-[11px] text-slate-400 leading-tight">${style.desc}</p>
+          `;
+          btn.addEventListener('click', () => {
+            selectedStyle = style.id;
+            renderModalControls();
+            updatePreviewLabel();
+          });
+          stylesGrid.appendChild(btn);
+        });
+      }
+
+      // 2. Populate Palettes Grid
+      if (palettesGrid) {
+        palettesGrid.innerHTML = '';
+        Object.entries(ABSTRACT_PALETTES).forEach(([key, pal]) => {
+          const isSelected = key === selectedPalette;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer ${
+            isSelected
+              ? 'bg-brand-500/20 border-brand-500 text-white ring-2 ring-brand-500/30'
+              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+          }`;
+
+          const swatches = pal.colors.slice(1, 5).map(c => `<span class="w-3 h-3 rounded-full border border-black/40" style="background-color: ${c}"></span>`).join('');
+
+          btn.innerHTML = `
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-medium truncate">${pal.name}</span>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              ${swatches}
+            </div>
+          `;
+          btn.addEventListener('click', () => {
+            selectedPalette = key;
+            renderModalControls();
+            updatePreviewLabel();
+          });
+          palettesGrid.appendChild(btn);
+        });
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    // Modal preview animation loop
+    const startModalPreview = () => {
+      if (previewRunning) return;
+      previewRunning = true;
+
+      const loop = () => {
+        if (!previewRunning || !previewCtx || !previewCanvas) return;
+        const w = previewCanvas.width;
+        const h = previewCanvas.height;
+        const pal = ABSTRACT_PALETTES[selectedPalette]?.colors || ABSTRACT_PALETTES.cyber_neon.colors;
+        const audioTelem = this.audio?.getAudioTelemetry() || null;
+
+        // Dynamic motion packet
+        const telem = (audioTelem && audioTelem.isPlaying) ? audioTelem : {
+          isPlaying: true,
+          bass: 0.35 + Math.sin(Date.now() * 0.003) * 0.25,
+          mid: 0.30 + Math.cos(Date.now() * 0.004) * 0.2,
+          treble: 0.40 + Math.sin(Date.now() * 0.005) * 0.2,
+          volume: 0.35 + Math.sin(Date.now() * 0.003) * 0.2,
+          beat: Math.sin(Date.now() * 0.006) > 0.85 ? 0.8 : 0,
+          frequencyData: null,
+          timeDomainData: null
+        };
+
+        const mockAsset = { style: selectedStyle, colors: pal };
+        this.mediaPool._drawAudioReactive(previewCtx, w, h, mockAsset, telem);
+
+        previewAnimFrame = requestAnimationFrame(loop);
+      };
+
+      previewAnimFrame = requestAnimationFrame(loop);
+    };
+
+    const stopModalPreview = () => {
+      previewRunning = false;
+      if (previewAnimFrame) {
+        cancelAnimationFrame(previewAnimFrame);
+        previewAnimFrame = null;
+      }
+    };
+
+    const openModal = () => {
+      if (!modal) return;
+      renderModalControls();
+      updatePreviewLabel();
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => modal.classList.remove('opacity-0'));
+      startModalPreview();
+    };
+
+    const closeModal = () => {
+      if (!modal) return;
+      stopModalPreview();
+      modal.classList.add('opacity-0');
+      setTimeout(() => modal.classList.add('hidden'), 200);
+    };
+
+    openBtn?.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    closeFooterBtn?.addEventListener('click', closeModal);
+    backdrop?.addEventListener('click', closeModal);
+
+    // Escape key listener for audio reactive modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+
+    // Add single selected background
+    addSingleBtn?.addEventListener('click', () => {
+      const sObj = ABSTRACT_STYLES.find(s => s.id === selectedStyle);
+      const pObj = ABSTRACT_PALETTES[selectedPalette];
+      const name = `${sObj?.name || 'Audio Visuals'} (${pObj?.name || 'Neon'})`;
+      
+      const asset = this.mediaPool.addAudioReactiveBackground(name, selectedStyle, selectedPalette);
+      this.mediaPool.setActiveAsset(asset.id);
+      this._renderBgPool();
+      this._syncStylePreview();
+      this.showToast(`Added ${name} to background pool`, 'success');
+      closeModal();
+    });
+
+    // Add all 6 styles
+    addAllBtn?.addEventListener('click', () => {
+      let firstAdded = null;
+      ABSTRACT_STYLES.forEach((style, idx) => {
+        const palKeys = Object.keys(ABSTRACT_PALETTES);
+        const palKey = palKeys[idx % palKeys.length];
+        const asset = this.mediaPool.addAudioReactiveBackground(style.name, style.id, palKey);
+        if (!firstAdded) firstAdded = asset;
+      });
+      if (firstAdded) this.mediaPool.setActiveAsset(firstAdded.id);
+      this._renderBgPool();
+      this._syncStylePreview();
+      this.showToast('Added all 6 Audio-Reactive styles to pool', 'success');
+      closeModal();
+    });
+  }
+
+  // ==========================================
+  // 12. VERSION UPDATE NOTIFICATION POPUP
   // ==========================================
   _checkAppVersionUpdate() {
     const updatedPopupFlag = sessionStorage.getItem('lyricflow_updated_popup');
@@ -2452,7 +2655,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.22').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.23').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

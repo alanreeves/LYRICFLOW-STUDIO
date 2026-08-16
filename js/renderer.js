@@ -3,10 +3,11 @@
  * word-wrapping typography, outlines, shadows, dynamic positioning, and animation transitions.
  */
 export class CanvasRenderer {
-  constructor(canvas, mediaPool) {
+  constructor(canvas, mediaPool, audioManager = null) {
     this.canvas = typeof canvas === 'string' ? document.getElementById(canvas) : canvas;
     this.ctx = this.canvas ? this.canvas.getContext('2d', { alpha: false }) : null;
     this.mediaPool = mediaPool;
+    this.audioManager = audioManager;
 
     // Aspect ratio & resolution configuration
     this.aspectRatio = '16-9'; // '16-9', '9-16', '1-1'
@@ -295,9 +296,10 @@ export class CanvasRenderer {
     const w = this.baseWidth;
     const h = this.baseHeight;
 
-    // 1. Draw Media Background
+    // 1. Draw Media Background with live Audio Telemetry
     if (this.mediaPool) {
-      this.mediaPool.drawBackground(ctx, w, h);
+      const audioTelemetry = this.audioManager ? this.audioManager.getAudioTelemetry() : null;
+      this.mediaPool.drawBackground(ctx, w, h, audioTelemetry);
     } else {
       ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, w, h);

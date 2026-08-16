@@ -51,7 +51,7 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
 
-  <link rel="stylesheet" href="style.css?v=1.0.22">
+  <link rel="stylesheet" href="style.css?v=1.0.23">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -329,9 +329,13 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button id="btn-add-gradient-bg" class="btn-secondary text-xs flex items-center gap-1.5">
+          <button type="button" id="btn-open-audio-reactive-modal" class="btn-primary text-xs flex items-center gap-1.5 shadow-lg shadow-brand-500/20">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+            <span>Audio Reactive Visuals</span>
+          </button>
+          <button type="button" id="btn-add-gradient-bg" class="btn-secondary text-xs flex items-center gap-1.5">
             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>Add Animated Gradient</span>
+            <span>Add Gradient BG</span>
           </button>
         </div>
       </div>
@@ -1145,6 +1149,69 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
 
   </main>
 
+  <!-- Audio Reactive Backgrounds Picker Modal -->
+  <div id="audio-reactive-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="app-dialog-backdrop fixed inset-0" id="audio-reactive-backdrop"></div>
+    <div class="app-dialog-card relative w-full max-w-3xl rounded-2xl p-6 text-slate-100 z-10 space-y-5 border border-slate-700 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-display text-white">Audio Reactive Visuals</h3>
+            <p class="text-xs text-slate-400">Procedural 60fps abstract backgrounds that pulse and react to music frequencies</p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-audio-reactive-modal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-5 pr-1">
+        <!-- Interactive Preview Canvas & Status -->
+        <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 relative aspect-video max-h-48 flex items-center justify-center">
+          <canvas id="audio-reactive-modal-preview-canvas" width="640" height="360" class="w-full h-full object-cover"></canvas>
+          <div class="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/75 backdrop-blur-sm text-[11px] font-mono text-cyan-300 flex items-center gap-1.5 border border-cyan-500/20">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="ar-modal-preview-label">Cyber Liquid Aurora • Cyber Neon</span>
+          </div>
+        </div>
+
+        <!-- 1. Visualizer Style Selection -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">1. Choose Visualizer Style</label>
+          <div id="ar-styles-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <!-- Dynamically populated style buttons or cards -->
+          </div>
+        </div>
+
+        <!-- 2. Color Palette Selection -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">2. Choose Color Palette</label>
+          <div id="ar-palettes-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <!-- Dynamically populated palette pills -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2">
+        <button type="button" id="btn-ar-modal-add-all-presets" class="btn-secondary text-xs flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Add All 6 Styles to Pool</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-close-ar-modal-footer" class="btn-secondary px-4 text-xs">Cancel</button>
+          <button type="button" id="btn-ar-modal-add-single" class="btn-primary px-5 text-xs flex items-center gap-1.5">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+            <span>Add Selected to Pool</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
     <div class="app-dialog-backdrop fixed inset-0"></div>
@@ -1306,7 +1373,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.22"></script>
+  <script type="module" src="app.js?v=1.0.23"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {
