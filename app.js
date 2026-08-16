@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.20';
+export const APP_VERSION = '1.0.21';
 
 class App {
   constructor() {
@@ -2452,7 +2452,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.20').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.21').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
