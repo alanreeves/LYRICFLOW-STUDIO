@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.19';
+export const APP_VERSION = '1.0.20';
 
 class App {
   constructor() {
@@ -713,8 +713,8 @@ class App {
         <div class="flex items-start gap-2.5 flex-1">
           <div class="flex flex-col gap-1 items-start">
             <span class="text-xs font-mono font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">${idx + 1}</span>
-            ${cue.autoSlide ? '<span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-sm" title="Automatically changes background slide"><i data-lucide="image" class="w-2.5 h-2.5"></i>SLIDE</span>' : ''}
-            ${cue.autoVideo ? '<span class="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/30 px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-sm" title="Automatically changes background video"><i data-lucide="film" class="w-2.5 h-2.5"></i>VIDEO</span>' : ''}
+            ${cue.autoSlide ? `<span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm max-w-[140px] truncate" title="${cue.slideTarget ? `Auto-switch to slide: ${cue.slideTarget}` : 'Automatically changes background slide'}"><i data-lucide="image" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${cue.slideTarget ? cue.slideTarget : 'SLIDE'}</span></span>` : ''}
+            ${cue.autoVideo ? `<span class="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/30 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm max-w-[140px] truncate" title="${cue.videoTarget ? `Auto-switch to video: ${cue.videoTarget}` : 'Automatically changes background video'}"><i data-lucide="film" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${cue.videoTarget ? cue.videoTarget : 'VIDEO'}</span></span>` : ''}
           </div>
           <textarea class="cue-edit-textarea w-full bg-transparent text-sm text-slate-200 resize-none outline-none font-medium leading-relaxed focus:bg-slate-900/80 p-1 rounded transition" rows="${Math.max(1, cue.lines.length)}">${cue.text}</textarea>
         </div>
@@ -1332,21 +1332,37 @@ class App {
       const activeCue = this.lyrics.cues[this.activeCueIndex];
       this.renderer.setCue(activeCue, false);
 
-      // Auto-advance background slide when cue has [SLIDE] tag
-      if (activeCue && activeCue.autoSlide && this.mediaPool.slideshowMode) {
-        this.mediaPool.advanceSlide();
-        this._updateSlideTelemetryUI();
-      }
-
-      // Auto-advance background video when cue has [VIDEO] tag
-      if (activeCue && activeCue.autoVideo) {
-        this.advanceVideo();
-      }
+      this._triggerCueMedia(activeCue);
 
       this._updatePrompterUI();
     } else {
       // Reached the end of lyrics
       this.showToast('Final lyric cue reached!', 'info');
+    }
+  }
+
+  _triggerCueMedia(cue) {
+    if (!cue) return;
+    if (cue.autoSlide) {
+      if (cue.slideTarget) {
+        const slide = this.mediaPool.setSlideByNameOrIndex(cue.slideTarget);
+        if (slide) this._updateSlideTelemetryUI();
+      } else if (this.mediaPool.slideshowMode) {
+        this.mediaPool.advanceSlide();
+        this._updateSlideTelemetryUI();
+      }
+    }
+
+    if (cue.autoVideo) {
+      if (cue.videoTarget) {
+        const vid = this.mediaPool.setVideoByNameOrIndex(cue.videoTarget);
+        if (vid) {
+          this._renderBgPool();
+          this.showToast(`Switched to Video: ${vid.name}`, 'info', 1200);
+        }
+      } else {
+        this.advanceVideo();
+      }
     }
   }
 
@@ -1404,14 +1420,16 @@ class App {
     }
 
     if (prompterActive) {
-      const slideBadge = currentCue && currentCue.autoSlide ? ' <span class="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold">📸 SLIDE</span>' : '';
-      const videoBadge = currentCue && currentCue.autoVideo ? ' <span class="ml-1.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[10px] font-mono font-bold">🎬 VIDEO</span>' : '';
+      const slideBadge = currentCue && currentCue.autoSlide ? ` <span class="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold" title="${currentCue.slideTarget ? `Slide: ${currentCue.slideTarget}` : 'Slide'}">📸 ${currentCue.slideTarget || 'SLIDE'}</span>` : '';
+      const videoBadge = currentCue && currentCue.autoVideo ? ` <span class="ml-1.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[10px] font-mono font-bold" title="${currentCue.videoTarget ? `Video: ${currentCue.videoTarget}` : 'Video'}">🎬 ${currentCue.videoTarget || 'VIDEO'}</span>` : '';
       prompterActive.innerHTML = currentCue ? `${currentCue.text}${slideBadge}${videoBadge}` : '(No cue active yet)';
     }
 
     if (prompterNext) {
-      const slideIcon = nextCue && nextCue.autoSlide ? ' <span class="ml-1 px-1 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold">📸</span>' : '';
-      const videoIcon = nextCue && nextCue.autoVideo ? ' <span class="ml-1 px-1 rounded bg-purple-500/20 text-purple-400 text-[10px] font-mono font-bold">🎬</span>' : '';
+      const slideLabel = nextCue && nextCue.autoSlide ? (nextCue.slideTarget ? `📸 ${nextCue.slideTarget}` : '📸') : '';
+      const slideIcon = slideLabel ? ` <span class="ml-1 px-1 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold" title="${nextCue.slideTarget ? `Slide: ${nextCue.slideTarget}` : 'Slide'}">${slideLabel}</span>` : '';
+      const videoLabel = nextCue && nextCue.autoVideo ? (nextCue.videoTarget ? `🎬 ${nextCue.videoTarget}` : '🎬') : '';
+      const videoIcon = videoLabel ? ` <span class="ml-1 px-1 rounded bg-purple-500/20 text-purple-400 text-[10px] font-mono font-bold" title="${nextCue.videoTarget ? `Video: ${nextCue.videoTarget}` : 'Video'}">${videoLabel}</span>` : '';
       prompterNext.innerHTML = nextCue ? `${nextCue.text.replace(/\n/g, ' ')}${slideIcon}${videoIcon}` : '— End of Lyrics —';
     }
 
@@ -1424,8 +1442,8 @@ class App {
         const isActive = idx === this.activeCueIndex;
         const isPast = idx < this.activeCueIndex;
         item.className = `p-1.5 px-2.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${isActive ? 'bg-brand-500/20 border border-brand-500/40 text-white font-semibold' : isPast ? 'text-slate-500 opacity-60' : 'text-slate-400 hover:bg-slate-800'}`;
-        const sTag = cue.autoSlide ? ' <span class="text-[9px] text-emerald-400 font-bold ml-1 font-mono">📸</span>' : '';
-        const vTag = cue.autoVideo ? ' <span class="text-[9px] text-purple-400 font-bold ml-1 font-mono">🎬</span>' : '';
+        const sTag = cue.autoSlide ? ` <span class="text-[9px] text-emerald-400 font-bold ml-1 font-mono" title="${cue.slideTarget ? `Slide: ${cue.slideTarget}` : 'Slide'}">📸${cue.slideTarget ? ' ' + cue.slideTarget : ''}</span>` : '';
+        const vTag = cue.autoVideo ? ` <span class="text-[9px] text-purple-400 font-bold ml-1 font-mono" title="${cue.videoTarget ? `Video: ${cue.videoTarget}` : 'Video'}">🎬${cue.videoTarget ? ' ' + cue.videoTarget : ''}</span>` : '';
         item.innerHTML = `
           <span class="truncate mr-2">${idx + 1}. ${cue.text.replace(/\n/g, ' ')}${sTag}${vTag}</span>
           ${isActive ? '<span class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0 animate-pulse"></span>' : ''}
@@ -1433,13 +1451,7 @@ class App {
         item.addEventListener('click', () => {
           this.activeCueIndex = idx;
           this.renderer.setCue(cue, false);
-          if (cue.autoSlide && this.mediaPool.slideshowMode) {
-            this.mediaPool.advanceSlide();
-            this._updateSlideTelemetryUI();
-          }
-          if (cue.autoVideo) {
-            this.advanceVideo();
-          }
+          this._triggerCueMedia(cue);
           this._updatePrompterUI();
         });
         prompterList.appendChild(item);
@@ -2440,7 +2452,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.19').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.20').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

@@ -198,6 +198,57 @@ export class MediaPool {
     return current;
   }
 
+  setSlideByNameOrIndex(target) {
+    if (!target) return this.advanceSlide();
+    if (this.slides.length === 0) return null;
+
+    const trimmed = String(target).trim();
+    const cleanTarget = trimmed.toLowerCase();
+
+    // Check if target is a 1-based number: e.g. "1", "2", "Slide 2"
+    const numMatch = cleanTarget.match(/^(?:slide\s*)?#?(\d+)$/i);
+    let matchedIndex = -1;
+
+    if (numMatch) {
+      const idx = parseInt(numMatch[1], 10) - 1;
+      if (idx >= 0 && idx < this.slides.length) {
+        matchedIndex = idx;
+      }
+    }
+
+    if (matchedIndex === -1) {
+      // 1. Exact name match (case-insensitive)
+      matchedIndex = this.slides.findIndex(s => s.name.toLowerCase() === cleanTarget);
+    }
+
+    if (matchedIndex === -1) {
+      // 2. Name without extension match (e.g. "chorus" matches "chorus.jpg")
+      const targetNoExt = cleanTarget.replace(/\.[^/.]+$/, '');
+      matchedIndex = this.slides.findIndex(s => {
+        const slideNoExt = s.name.toLowerCase().replace(/\.[^/.]+$/, '');
+        return slideNoExt === targetNoExt;
+      });
+    }
+
+    if (matchedIndex === -1) {
+      // 3. Substring match (e.g. "intro" matches "01_intro_slide.jpg")
+      matchedIndex = this.slides.findIndex(s => s.name.toLowerCase().includes(cleanTarget));
+    }
+
+    if (matchedIndex !== -1) {
+      this.slideshowMode = true;
+      this.currentSlideIndex = matchedIndex;
+      const current = this.getCurrentSlide();
+      if (this.onSlideChangeCallback) {
+        this.onSlideChangeCallback(current, this.currentSlideIndex, this.slides.length);
+      }
+      return current;
+    }
+
+    // Fallback if not found
+    return this.advanceSlide();
+  }
+
   getCurrentSlide() {
     if (!this.slideshowMode || this.slides.length === 0) return null;
     return this.slides[this.currentSlideIndex] || this.slides[0] || null;
@@ -246,6 +297,55 @@ export class MediaPool {
     const prevVid = videos[prevIdx];
     this.setActiveAsset(prevVid.id);
     return prevVid;
+  }
+
+  setVideoByNameOrIndex(target) {
+    const videos = this.assets.filter(a => a.type === 'video');
+    if (videos.length === 0) return null;
+    if (!target) return this.nextVideo();
+
+    const trimmed = String(target).trim();
+    const cleanTarget = trimmed.toLowerCase();
+
+    // Check if target is a 1-based number: e.g. "1", "2", "Video 2"
+    const numMatch = cleanTarget.match(/^(?:video\s*|vid\s*)?#?(\d+)$/i);
+    let matchedIndex = -1;
+
+    if (numMatch) {
+      const idx = parseInt(numMatch[1], 10) - 1;
+      if (idx >= 0 && idx < videos.length) {
+        matchedIndex = idx;
+      }
+    }
+
+    if (matchedIndex === -1) {
+      // 1. Exact name match (case-insensitive)
+      matchedIndex = videos.findIndex(v => v.name.toLowerCase() === cleanTarget);
+    }
+
+    if (matchedIndex === -1) {
+      // 2. Name without extension match (e.g. "bg_loop" matches "bg_loop.mp4")
+      const targetNoExt = cleanTarget.replace(/\.[^/.]+$/, '');
+      matchedIndex = videos.findIndex(v => {
+        const vidNoExt = v.name.toLowerCase().replace(/\.[^/.]+$/, '');
+        return vidNoExt === targetNoExt;
+      });
+    }
+
+    if (matchedIndex === -1) {
+      // 3. Substring match
+      matchedIndex = videos.findIndex(v => v.name.toLowerCase().includes(cleanTarget));
+    }
+
+    if (matchedIndex !== -1) {
+      const targetVid = videos[matchedIndex];
+      this.slideshowMode = false;
+      this.setActiveAsset(targetVid.id);
+      return targetVid;
+    }
+
+    // Fallback if not found
+    return this.nextVideo();
   }
 
   addProceduralGradient(name = 'Neon Cyber Aurora', colors = ['#0f172a', '#312e81', '#4c1d95', '#064e3b']) {

@@ -474,9 +474,10 @@ export class CanvasRenderer {
   _stripPunctuation(text) {
     if (!text) return '';
     return text
+      .replace(/\[slide(?:\s*[:=]\s*|\s+)[^\]]+\]\s*/gi, '')
       .replace(/\[slide\]\s*/gi, '')
-      .replace(/\[video\]\s*/gi, '')
-      .replace(/\[vid\]\s*/gi, '')
+      .replace(/\[(?:video|vid)(?:\s*[:=]\s*|\s+)[^\]]+\]\s*/gi, '')
+      .replace(/\[(?:video|vid)\]\s*/gi, '')
       .split('\n')
       .map(line => {
         return line

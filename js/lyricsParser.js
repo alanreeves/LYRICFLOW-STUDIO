@@ -82,23 +82,18 @@ export class LyricsParser {
     }
 
     this.cues = chunks.map((chunkText, idx) => {
-      const hasSlideTag = /\[slide\]/i.test(chunkText);
-      const hasVideoTag = /\[video\]|\[vid\]/i.test(chunkText);
-      // Cleanly remove [SLIDE] and [VIDEO] anywhere at start or within cue line
-      const cleanText = chunkText
-        .replace(/\[slide\]\s*/gi, '')
-        .replace(/\[video\]\s*/gi, '')
-        .replace(/\[vid\]\s*/gi, '')
-        .trim();
-      const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const tagInfo = this._extractMediaTags(chunkText);
+      const lines = tagInfo.cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
       return {
         id: 'cue_' + idx + '_' + Math.random().toString(36).substr(2, 4),
         index: idx,
-        text: cleanText,
+        text: tagInfo.cleanText,
         lines: lines,
-        autoSlide: hasSlideTag,
-        autoVideo: hasVideoTag
+        autoSlide: tagInfo.hasSlideTag,
+        slideTarget: tagInfo.slideTarget,
+        autoVideo: tagInfo.hasVideoTag,
+        videoTarget: tagInfo.videoTarget
       };
     }).filter(cue => cue.text.length > 0 || cue.autoSlide || cue.autoVideo);
 
@@ -109,19 +104,55 @@ export class LyricsParser {
     return this.cues;
   }
 
+  _extractMediaTags(text) {
+    let slideTarget = null;
+    let videoTarget = null;
+    let hasSlideTag = false;
+    let hasVideoTag = false;
+
+    // Match [slide: filename] or [slide=filename] or [slide filename] or [slide]
+    const slideMatch = text.match(/\[slide(?:\s*[:=]\s*|\s+)([^\]]+)\]/i);
+    if (slideMatch) {
+      hasSlideTag = true;
+      slideTarget = slideMatch[1].trim();
+    } else if (/\[slide\]/i.test(text)) {
+      hasSlideTag = true;
+    }
+
+    // Match [video: filename] or [vid: filename] or [video=filename] or [video filename] or [video] or [vid]
+    const videoMatch = text.match(/\[(?:video|vid)(?:\s*[:=]\s*|\s+)([^\]]+)\]/i);
+    if (videoMatch) {
+      hasVideoTag = true;
+      videoTarget = videoMatch[1].trim();
+    } else if (/\[(?:video|vid)\]/i.test(text)) {
+      hasVideoTag = true;
+    }
+
+    const cleanText = text
+      .replace(/\[slide(?:\s*[:=]\s*|\s+)[^\]]+\]\s*/gi, '')
+      .replace(/\[slide\]\s*/gi, '')
+      .replace(/\[(?:video|vid)(?:\s*[:=]\s*|\s+)[^\]]+\]\s*/gi, '')
+      .replace(/\[(?:video|vid)\]\s*/gi, '')
+      .trim();
+
+    return {
+      hasSlideTag,
+      slideTarget,
+      hasVideoTag,
+      videoTarget,
+      cleanText
+    };
+  }
+
   updateCueText(index, newText) {
     if (index >= 0 && index < this.cues.length) {
-      const hasSlideTag = /\[slide\]/i.test(newText);
-      const hasVideoTag = /\[video\]|\[vid\]/i.test(newText);
-      const cleanText = newText
-        .replace(/\[slide\]\s*/gi, '')
-        .replace(/\[video\]\s*/gi, '')
-        .replace(/\[vid\]\s*/gi, '')
-        .trim();
-      this.cues[index].text = cleanText;
-      this.cues[index].lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      this.cues[index].autoSlide = hasSlideTag;
-      this.cues[index].autoVideo = hasVideoTag;
+      const tagInfo = this._extractMediaTags(newText);
+      this.cues[index].text = tagInfo.cleanText;
+      this.cues[index].lines = tagInfo.cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      this.cues[index].autoSlide = tagInfo.hasSlideTag;
+      this.cues[index].slideTarget = tagInfo.slideTarget;
+      this.cues[index].autoVideo = tagInfo.hasVideoTag;
+      this.cues[index].videoTarget = tagInfo.videoTarget;
       if (this.onCuesUpdatedCallback) this.onCuesUpdatedCallback(this.cues);
     }
   }
