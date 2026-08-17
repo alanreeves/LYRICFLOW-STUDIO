@@ -45,9 +45,6 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- FFmpeg.wasm for Browser-Side MP4 Generation -->
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
-
   <!-- Favicon & App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -55,7 +52,7 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css?v=1.0.26">
+  <link rel="stylesheet" href="style.css?v=1.0.27">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -1067,9 +1064,9 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
         <div>
           <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
             <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">5</span>
-            Export & Download Video (.MP4)
+            Export & Download Video
           </h1>
-          <p class="text-slate-400 text-sm mt-1">Review your freshly generated synchronized lyrics video and download it as an MP4 file.</p>
+          <p class="text-slate-400 text-sm mt-1">Review your freshly generated synchronized lyrics video and download it to your device.</p>
         </div>
         <div class="flex items-center gap-3">
           <button id="btn-re-record" class="btn-secondary flex items-center gap-2">
@@ -1078,7 +1075,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
           </button>
           <a id="btn-download-video" class="btn-primary flex items-center gap-2" download="lyrics-video.mp4">
             <i data-lucide="download" class="w-4 h-4"></i>
-            <span>Download MP4</span>
+            <span>Download Video</span>
           </a>
         </div>
       </div>
@@ -1113,7 +1110,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
           <div class="card p-5 space-y-4">
             <h3 class="font-semibold text-white text-base flex items-center gap-2 border-b border-slate-800 pb-3">
               <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
-              MP4 Ready for Download!
+              Video Ready for Download!
             </h3>
 
             <div class="space-y-3 text-sm">
@@ -1127,7 +1124,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
               </div>
               <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400">Format:</span>
-                <span id="export-stat-format" class="font-mono font-medium text-brand-400">MP4 (H.264 / AAC)</span>
+                <span id="export-stat-format" class="font-mono font-medium text-brand-400">Video</span>
               </div>
               <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400">Estimated File Size:</span>
@@ -1138,7 +1135,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
             <div class="pt-4 space-y-3">
               <a id="btn-download-video-secondary" class="btn-primary w-full justify-center flex items-center gap-2 text-center" download="lyrics-video.mp4">
                 <i data-lucide="download" class="w-4 h-4"></i>
-                <span>Download MP4 File</span>
+                <span>Download Video File</span>
               </a>
               <button id="btn-export-to-studio" class="btn-secondary w-full justify-center flex items-center gap-2 text-center">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -1397,7 +1394,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.26"></script>
+  <script type="module" src="app.js?v=1.0.27"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.26';
+export const APP_VERSION = '1.0.27';
 
 class App {
   constructor() {
@@ -1269,6 +1269,16 @@ class App {
     this.activeCueIndex = -1;
     this.renderer.setCue(null);
 
+    // Release any previous exported preview video to free video decoder memory
+    const prevExportPlayer = document.getElementById('export-video-player');
+    if (prevExportPlayer) {
+      try {
+        prevExportPlayer.pause();
+        prevExportPlayer.removeAttribute('src');
+        prevExportPlayer.load();
+      } catch (e) {}
+    }
+
     // Audio start
     this.audio.seek(0);
     try {
@@ -1328,7 +1338,7 @@ class App {
       recBadge.classList.remove('flex');
     }
 
-    this.showToast('Recording finished! Generating MP4 video file...', 'info');
+    this.showToast('Recording finished! Finalizing video file...', 'info');
   }
 
   advanceCue() {
@@ -1588,13 +1598,20 @@ class App {
   // 7. EXPORT & REVIEW CONTROLS
   // ==========================================
   _setupExportControls() {
-    document.getElementById('btn-re-record')?.addEventListener('click', () => {
+    const returnToStudio = () => {
+      const videoPlayer = document.getElementById('export-video-player');
+      if (videoPlayer) {
+        try {
+          videoPlayer.pause();
+          videoPlayer.removeAttribute('src');
+          videoPlayer.load();
+        } catch (e) {}
+      }
       this.goToStep(4);
-    });
+    };
 
-    document.getElementById('btn-export-to-studio')?.addEventListener('click', () => {
-      this.goToStep(4);
-    });
+    document.getElementById('btn-re-record')?.addEventListener('click', returnToStudio);
+    document.getElementById('btn-export-to-studio')?.addEventListener('click', returnToStudio);
   }
 
   _showExportView(metadata) {
@@ -1622,14 +1639,20 @@ class App {
       videoPlayer.play().catch(() => {});
     }
 
+    const extLabel = metadata.extension.toUpperCase();
+
     if (dlBtn1) {
       dlBtn1.href = metadata.url;
       dlBtn1.download = metadata.filename;
+      const span1 = dlBtn1.querySelector('span');
+      if (span1) span1.textContent = `Download ${extLabel}`;
     }
 
     if (dlBtn2) {
       dlBtn2.href = metadata.url;
       dlBtn2.download = metadata.filename;
+      const span2 = dlBtn2.querySelector('span');
+      if (span2) span2.textContent = `Download ${extLabel} File`;
     }
 
     if (statDuration) statDuration.textContent = metadata.formattedDuration;
@@ -1637,7 +1660,7 @@ class App {
     if (statFormat) statFormat.textContent = metadata.mimeType;
     if (statSize) statSize.textContent = `${metadata.sizeMB} MB`;
 
-    this.showToast('MP4 Video Ready for Download!', 'success');
+    this.showToast(`Video (${extLabel}) Ready for Download!`, 'success');
   }
 
   // ==========================================
@@ -2714,7 +2737,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.26').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.27').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
