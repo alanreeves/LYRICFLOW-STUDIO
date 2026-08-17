@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.33';
+export const APP_VERSION = '1.0.34';
 
 class App {
   constructor() {
@@ -1329,11 +1329,42 @@ class App {
   _setupStudioSession() {
     this.activeCueIndex = -1;
     this.renderer.setCue(null);
+    this.audio.pause();
+    this.audio.seek(0);
+    this.mediaPool.pauseAllVideos();
+
+    // Rewind active video background or slide to beginning ready for fresh re-recording
+    const activeAsset = this.mediaPool.getActiveAsset();
+    if (activeAsset && activeAsset.videoElement) {
+      try {
+        activeAsset.videoElement.currentTime = 0;
+      } catch (e) {}
+    }
+    if (this.mediaPool.slideshowMode) {
+      this.mediaPool.activeSlideIndex = 0;
+      this._updateSlideTelemetryUI();
+    }
+
+    // Reset studio telemetry displays without touching loaded media assets
+    const recTimeDisp = document.getElementById('recording-time-display');
+    if (recTimeDisp) recTimeDisp.textContent = '00:00.0';
+
+    const curTime = document.getElementById('studio-time-current');
+    if (curTime) curTime.textContent = '0:00';
+
+    const progBar = document.getElementById('audio-progress-bar');
+    if (progBar) progBar.style.width = '0%';
+
+    const playIcon = document.getElementById('studio-play-icon');
+    if (playIcon) playIcon.setAttribute('data-lucide', 'play');
+
     this._updatePrompterUI();
     this._renderBgPool();
 
     const totText = document.getElementById('studio-time-total');
     if (totText) totText.textContent = this.audio.formatDuration(this.audio.duration);
+
+    if (window.lucide) window.lucide.createIcons();
   }
 
   async startStudioRecording() {
@@ -1686,6 +1717,7 @@ class App {
         } catch (e) {}
       }
       this.goToStep(4);
+      this.showToast('Ready to re-record! All lyrics, audio, and background assets preserved.', 'info', 3000);
     };
 
     document.getElementById('btn-re-record')?.addEventListener('click', returnToStudio);
@@ -2823,7 +2855,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.33').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.34').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
