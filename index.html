@@ -52,7 +52,7 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css?v=1.0.31">
+  <link rel="stylesheet" href="style.css?v=1.0.32">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -66,7 +66,7 @@
         <div class="flex items-center">
           <span class="text-lg sm:text-xl font-display font-extrabold bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">LyricFlow Studio</span>
           <span class="ml-2 text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 hidden 2xl:inline-block">MP4 Generator</span>
-          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.31</span>
+          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.32</span>
         </div>
       </div>
 
@@ -825,24 +825,24 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
     </section>
 
     <!-- STEP 4: LIVE PERFORMANCE & RECORDING STUDIO -->
-    <section id="step-view-4" class="step-view hidden space-y-4 flex-1 flex flex-col">
+    <section id="step-view-4" class="step-view hidden space-y-2.5 flex-1 flex flex-col">
       
       <!-- Studio Header Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-        <div class="flex items-center flex-wrap gap-2.5">
-          <div class="w-3.5 h-3.5 rounded-full bg-slate-600 shrink-0" id="rec-status-dot"></div>
-          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+        <div class="flex items-center flex-wrap gap-2">
+          <div class="w-3 h-3 rounded-full bg-slate-600 shrink-0" id="rec-status-dot"></div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             Live Recording Studio
           </h1>
-          <span id="recording-time-display" class="font-mono text-sm font-semibold px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">00:00.0</span>
+          <span id="recording-time-display" class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">00:00.0</span>
 
           <!-- Auto-Stop Mode Selector -->
-          <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-800 text-xs">
-            <span class="text-slate-400 flex items-center gap-1 text-[11px]">
-              <i data-lucide="timer" class="w-3.5 h-3.5 text-brand-400"></i>
+          <div class="flex items-center gap-1 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-slate-800 text-xs">
+            <span class="text-slate-400 flex items-center gap-1 text-[10px]">
+              <i data-lucide="timer" class="w-3 h-3 text-brand-400"></i>
               <span>Stop At:</span>
             </span>
-            <select id="recording-limit-mode" class="input-select py-0.5 px-1.5 text-xs bg-slate-950 border-slate-700 font-medium cursor-pointer">
+            <select id="recording-limit-mode" class="input-select py-0.5 px-1.5 text-[11px] bg-slate-950 border-slate-700 font-medium cursor-pointer">
               <option value="audio_end" selected>End of Audio Track</option>
               <option value="15">15 Seconds</option>
               <option value="30">30 Seconds</option>
@@ -852,221 +852,220 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
               <option value="custom">Custom Seconds...</option>
             </select>
             <div id="recording-custom-sec-container" class="hidden items-center gap-1">
-              <input type="number" id="recording-custom-sec-input" min="1" max="600" value="30" class="input-text w-14 py-0.5 px-1 text-xs text-center">
+              <input type="number" id="recording-custom-sec-input" min="1" max="600" value="30" class="input-text w-12 py-0.5 px-1 text-[11px] text-center">
               <span class="text-slate-400 text-[10px]">s</span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center flex-wrap gap-2 sm:gap-3">
-          <button id="btn-studio-save-session" class="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer" title="Save all recording details & settings">
+        <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
+          <button id="btn-studio-save-session" class="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 cursor-pointer" title="Save all recording details & settings">
             <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-400"></i>
             <span class="hidden sm:inline">Save Session</span>
             <span class="sm:hidden">Save</span>
           </button>
-          <button id="btn-studio-reload-session" class="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer" title="Reload saved session ready for another live recording">
+          <button id="btn-studio-reload-session" class="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 cursor-pointer" title="Reload saved session ready for another live recording">
             <i data-lucide="folder-open" class="w-3.5 h-3.5 text-cyan-400"></i>
             <span class="hidden sm:inline">Reload Session</span>
             <span class="sm:hidden">Reload</span>
           </button>
-          <button id="step-4-prev-btn" class="btn-secondary text-xs flex items-center gap-1.5">
+          <button id="step-4-prev-btn" class="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1">
             <i data-lucide="settings" class="w-3.5 h-3.5"></i>
             <span>Styles</span>
           </button>
-          <button id="btn-toggle-record" class="btn-rec flex items-center gap-2">
-            <i data-lucide="circle-dot" class="w-5 h-5"></i>
+          <button id="btn-toggle-record" class="btn-rec text-xs py-1.5 px-3 flex items-center gap-1.5">
+            <i data-lucide="circle-dot" class="w-4 h-4"></i>
             <span id="btn-toggle-record-text">Start Recording & Play</span>
           </button>
         </div>
       </div>
 
       <!-- Studio Layout: Main Viewport + Live Controller Panel -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 items-start">
         
-        <!-- Center/Left: Master HTML5 Viewport Canvas (8 cols) -->
-        <div class="lg:col-span-8 flex flex-col space-y-3">
+        <!-- Center/Left: Master HTML5 Viewport Canvas (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-2.5">
           
-          <!-- Master Stage Screen -->
-          <div id="master-stage-wrapper" class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center group">
+          <!-- Master Stage Screen (Scaled & Constrained) -->
+          <div id="master-stage-wrapper" class="relative w-full max-h-[250px] md:max-h-[275px] xl:max-h-[300px] aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center group mx-auto">
             <canvas id="master-canvas" class="w-full h-full object-contain"></canvas>
 
             <!-- Recording HUD Overlay -->
-            <div id="studio-hud" class="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between transition-opacity duration-300">
+            <div id="studio-hud" class="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between transition-opacity duration-300">
               <!-- Top HUD -->
               <div class="flex items-center justify-between">
-                <div id="live-rec-badge" class="hidden items-center gap-2 px-3 py-1 rounded-full bg-red-600/90 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider shadow-lg animate-pulse">
-                  <span class="w-2 h-2 rounded-full bg-white"></span>
+                <div id="live-rec-badge" class="hidden items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider shadow-lg animate-pulse">
+                  <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
                   <span>REC 60FPS</span>
                 </div>
-                <div class="px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md text-xs font-mono text-slate-300 border border-white/10">
+                <div class="px-2.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-[10px] font-mono text-slate-300 border border-white/10">
                   <span id="cue-counter-hud">Cue 0 / 0</span>
                 </div>
               </div>
 
               <!-- Bottom HUD: Next Cue Preview -->
-              <div class="bg-black/70 backdrop-blur-md p-3 rounded-xl border border-white/10 max-w-xl mx-auto w-full text-center">
-                <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Next Lyric Cue (Press Spacebar to Fire)</p>
-                <p id="hud-next-cue-text" class="text-sm font-medium text-slate-200 truncate">Song ready to start...</p>
+              <div class="bg-black/70 backdrop-blur-md p-2 rounded-lg border border-white/10 max-w-lg mx-auto w-full text-center">
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Next Lyric Cue (Press Spacebar to Fire)</p>
+                <p id="hud-next-cue-text" class="text-xs font-medium text-slate-200 truncate">Song ready to start...</p>
               </div>
             </div>
           </div>
 
           <!-- Audio Waveform / Progress Bar -->
-          <div class="card p-3 flex items-center gap-3 bg-slate-900/90">
-            <button id="btn-studio-audio-toggle" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition">
-              <i data-lucide="play" class="w-4 h-4" id="studio-play-icon"></i>
+          <div class="card p-2 flex items-center gap-2.5 bg-slate-900/90 rounded-lg">
+            <button id="btn-studio-audio-toggle" class="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition shrink-0">
+              <i data-lucide="play" class="w-3.5 h-3.5" id="studio-play-icon"></i>
             </button>
-            <div class="flex-1 space-y-1">
-              <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 relative cursor-pointer" id="audio-progress-bar-container">
+            <div class="flex-1 space-y-0.5">
+              <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800 relative cursor-pointer" id="audio-progress-bar-container">
                 <div id="audio-progress-bar" class="h-full bg-gradient-to-r from-brand-500 to-pink-500 w-0 transition-all duration-100"></div>
               </div>
             </div>
-            <span id="studio-time-current" class="text-xs font-mono text-slate-300">0:00</span>
-            <span class="text-slate-600 text-xs">/</span>
-            <span id="studio-time-total" class="text-xs font-mono text-slate-500">0:00</span>
+            <span id="studio-time-current" class="text-[11px] font-mono text-slate-300">0:00</span>
+            <span class="text-slate-600 text-[11px]">/</span>
+            <span id="studio-time-total" class="text-[11px] font-mono text-slate-500">0:00</span>
           </div>
 
           <!-- Background Switcher & Variable Speed Bar -->
-          <div class="card p-3.5 bg-slate-900/90 space-y-3">
-            <div class="flex items-center justify-between text-xs flex-wrap gap-2 border-b border-slate-800/80 pb-2">
-              <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+          <div class="card p-2.5 bg-slate-900/90 space-y-2 rounded-lg">
+            <div class="flex items-center justify-between text-xs flex-wrap gap-1.5 border-b border-slate-800/80 pb-1.5">
+              <span class="font-semibold text-slate-300 flex items-center gap-1.5 text-[11px]">
                 <i data-lucide="layers" class="w-3.5 h-3.5 text-pink-400"></i>
                 Switch Background (Keys 1-9 or [V])
               </span>
-              <div class="flex items-center gap-2">
-                <button type="button" id="btn-studio-next-video" class="btn-secondary text-[11px] py-1 px-2.5 flex items-center gap-1 text-pink-300 border-pink-500/30 hover:bg-pink-500/10 cursor-pointer" title="Switch to Next Video (Key V)">
-                  <i data-lucide="fast-forward" class="w-3 h-3 text-pink-400"></i>
+              <div class="flex items-center gap-1.5">
+                <button type="button" id="btn-studio-next-video" class="btn-secondary text-[10px] py-0.5 px-2 flex items-center gap-1 text-pink-300 border-pink-500/30 hover:bg-pink-500/10 cursor-pointer" title="Switch to Next Video (Key V)">
+                  <i data-lucide="fast-forward" class="w-2.5 h-2.5 text-pink-400"></i>
                   <span>Next Video [V]</span>
                 </button>
-                <span class="text-slate-500 text-[11px] hidden sm:inline">Click thumbnail or press key</span>
               </div>
             </div>
             
-            <div id="studio-bg-switcher" class="flex gap-2 overflow-x-auto pb-1">
+            <div id="studio-bg-switcher" class="flex gap-1.5 overflow-x-auto pb-0.5 max-h-[54px]">
               <!-- Live Background selector cards -->
             </div>
 
             <!-- Variable Background Motion & Video Speed Controller -->
-            <div class="pt-2 border-t border-slate-800/80 space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-semibold text-slate-300 flex items-center gap-1.5">
-                  <i data-lucide="gauge" class="w-4 h-4 text-pink-400"></i>
-                  <span>Background Motion & Playback Speed:</span>
+            <div class="pt-1.5 border-t border-slate-800/80 space-y-1.5">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="font-semibold text-slate-300 flex items-center gap-1">
+                  <i data-lucide="gauge" class="w-3.5 h-3.5 text-pink-400"></i>
+                  <span>Motion & Video Speed:</span>
                 </span>
-                <span id="studio-video-speed-val" class="font-mono font-bold text-sm text-pink-400">1.00x (Normal)</span>
+                <span id="studio-video-speed-val" class="font-mono font-bold text-xs text-pink-400">1.00x (Normal)</span>
               </div>
               
               <!-- Smooth continuous slider (down to 0.02x ultra-slow) -->
               <input type="range" id="studio-video-speed-slider" min="0.02" max="2.0" step="0.005" value="1.0" class="slider-range w-full">
 
-              <div class="grid grid-cols-6 gap-1.5 pt-1">
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.05">0.05x (Zen)</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.10">0.10x (Slow)</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.25">0.25x</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.5">0.50x</button>
-                <button type="button" class="btn-studio-speed-preset active py-1 text-[11px] font-semibold rounded bg-brand-600 text-white border border-brand-500 transition" data-speed="1.0">1.0x</button>
-                <button type="button" class="btn-studio-speed-preset py-1 text-[11px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="1.5">1.5x</button>
+              <div class="grid grid-cols-6 gap-1 pt-0.5">
+                <button type="button" class="btn-studio-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.05">0.05x</button>
+                <button type="button" class="btn-studio-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.10">0.10x</button>
+                <button type="button" class="btn-studio-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.25">0.25x</button>
+                <button type="button" class="btn-studio-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="0.5">0.50x</button>
+                <button type="button" class="btn-studio-speed-preset active py-0.5 text-[10px] font-semibold rounded bg-brand-600 text-white border border-brand-500 transition" data-speed="1.0">1.0x</button>
+                <button type="button" class="btn-studio-speed-preset py-0.5 text-[10px] font-semibold rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-speed="1.5">1.5x</button>
               </div>
             </div>
           </div>
 
         </div>
 
-        <!-- Right: Studio Live Trigger Panel (4 cols) -->
-        <div class="lg:col-span-4 space-y-4">
+        <!-- Right: Studio Live Trigger Panel (5 cols) -->
+        <div class="lg:col-span-5 space-y-2.5">
           
           <!-- TRIGGER BUTTONS CONTAINER -->
-          <div id="studio-trigger-container" class="space-y-2">
+          <div id="studio-trigger-container" class="space-y-1.5">
             <!-- Normal Single Trigger (When slideshow mode is OFF) -->
-            <button id="btn-fire-cue" class="w-full p-8 rounded-2xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-extrabold text-xl shadow-2xl shadow-brand-500/30 active:scale-[0.98] transition border-2 border-brand-400/40 flex flex-col items-center justify-center gap-2 group cursor-pointer">
-              <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <i data-lucide="fast-forward" class="w-7 h-7 text-white"></i>
+            <button id="btn-fire-cue" class="w-full py-4 px-4 rounded-xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-extrabold text-base shadow-xl shadow-brand-500/25 active:scale-[0.98] transition border border-brand-400/40 flex flex-col items-center justify-center gap-1 group cursor-pointer">
+              <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <i data-lucide="fast-forward" class="w-5 h-5 text-white"></i>
               </div>
-              <span class="tracking-wide">ADVANCE LYRIC CUE</span>
-              <span class="text-xs font-normal text-indigo-200 bg-black/30 px-3 py-1 rounded-full font-mono">Or Hit [SPACEBAR]</span>
+              <span class="tracking-wide text-sm font-extrabold">ADVANCE LYRIC CUE</span>
+              <span class="text-[10px] font-normal text-indigo-200 bg-black/30 px-2.5 py-0.5 rounded-full font-mono">[SPACEBAR]</span>
             </button>
 
             <!-- Split Triggers (When slideshow mode is ON) -->
-            <div id="studio-slideshow-trigger-split" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div id="studio-slideshow-trigger-split" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2">
               <!-- Advance Lyric Only -->
-              <button type="button" id="btn-split-advance-lyric" class="p-5 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-display font-bold text-base shadow-xl active:scale-[0.98] transition border border-slate-700 flex flex-col items-center justify-center gap-1.5 group cursor-pointer">
-                <div class="w-10 h-10 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i data-lucide="type" class="w-5 h-5"></i>
+              <button type="button" id="btn-split-advance-lyric" class="p-3 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-display font-bold text-xs shadow active:scale-[0.98] transition border border-slate-700 flex flex-col items-center justify-center gap-1 group cursor-pointer">
+                <div class="w-7 h-7 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i data-lucide="type" class="w-4 h-4"></i>
                 </div>
-                <span class="tracking-wide text-xs sm:text-sm font-bold text-center">ADVANCE LYRIC</span>
-                <span class="text-[10px] font-mono text-slate-400 bg-black/40 px-2 py-0.5 rounded-full">[SPACEBAR]</span>
+                <span class="tracking-wide text-[11px] font-bold text-center">ADVANCE LYRIC</span>
+                <span class="text-[9px] font-mono text-slate-400 bg-black/40 px-1.5 py-0.5 rounded-full">[SPACEBAR]</span>
               </button>
 
               <!-- Advance Lyric & Slide -->
-              <button type="button" id="btn-split-advance-both" class="p-5 rounded-2xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-bold text-base shadow-xl shadow-brand-500/25 active:scale-[0.98] transition border-2 border-brand-400/50 flex flex-col items-center justify-center gap-1.5 group cursor-pointer">
-                <div class="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i data-lucide="images" class="w-5 h-5"></i>
+              <button type="button" id="btn-split-advance-both" class="p-3 rounded-xl bg-gradient-to-b from-brand-600 to-indigo-700 hover:from-brand-500 hover:to-indigo-600 text-white font-display font-bold text-xs shadow-lg shadow-brand-500/20 active:scale-[0.98] transition border border-brand-400/50 flex flex-col items-center justify-center gap-1 group cursor-pointer">
+                <div class="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i data-lucide="images" class="w-4 h-4"></i>
                 </div>
-                <span class="tracking-wide text-xs sm:text-sm font-extrabold text-center">ADVANCE LYRIC & SLIDE</span>
-                <span class="text-[10px] font-mono text-indigo-200 bg-black/40 px-2 py-0.5 rounded-full">[SHIFT + SPACE]</span>
+                <span class="tracking-wide text-[11px] font-extrabold text-center">ADVANCE LYRIC & SLIDE</span>
+                <span class="text-[9px] font-mono text-indigo-200 bg-black/40 px-1.5 py-0.5 rounded-full">[SHIFT + SPACE]</span>
               </button>
             </div>
           </div>
 
           <!-- Cue Navigation Controls -->
-          <div class="grid grid-cols-2 gap-2">
-            <button id="btn-prev-cue" class="btn-secondary text-xs py-2.5 flex items-center justify-center gap-1.5">
-              <i data-lucide="skip-back" class="w-3.5 h-3.5"></i>
-              <span>Prev Cue [←]</span>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="btn-prev-cue" class="btn-secondary text-xs py-1.5 flex items-center justify-center gap-1">
+              <i data-lucide="skip-back" class="w-3 h-3"></i>
+              <span>Prev [←]</span>
             </button>
-            <button id="btn-blank-cue" class="btn-secondary text-xs py-2.5 flex items-center justify-center gap-1.5" title="Temporarily clear text from screen">
-              <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
-              <span>Blank Cue [B]</span>
+            <button id="btn-blank-cue" class="btn-secondary text-xs py-1.5 flex items-center justify-center gap-1" title="Temporarily clear text from screen">
+              <i data-lucide="eye-off" class="w-3 h-3"></i>
+              <span>Blank [B]</span>
             </button>
           </div>
 
           <!-- Active Slide Indicator (Visible in Slideshow mode) -->
-          <div id="studio-slide-telemetry" class="hidden card p-3 bg-slate-900/90 border border-brand-500/30 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <i data-lucide="image" class="w-4 h-4 text-brand-400"></i>
-              <span class="text-xs font-semibold text-slate-200">Current Background Slide:</span>
+          <div id="studio-slide-telemetry" class="hidden card p-2 bg-slate-900/90 border border-brand-500/30 flex items-center justify-between rounded-lg">
+            <div class="flex items-center gap-1.5">
+              <i data-lucide="image" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="text-xs font-semibold text-slate-200">Current Slide:</span>
             </div>
             <span id="studio-slide-indicator" class="text-xs font-mono font-bold text-brand-300 bg-brand-500/20 px-2 py-0.5 rounded border border-brand-500/30">Slide 1 / 1</span>
           </div>
 
           <!-- Active & Upcoming Cue Stream Telemetry -->
-          <div class="card p-4 space-y-3 bg-slate-900/90">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span class="text-xs font-semibold text-slate-300">Live Cue Prompter</span>
-              <span id="prompter-status" class="text-[11px] text-brand-400 font-mono">Standing By</span>
+          <div class="card p-3 space-y-2 bg-slate-900/90 rounded-lg">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+              <span class="text-[11px] font-semibold text-slate-300">Live Cue Prompter</span>
+              <span id="prompter-status" class="text-[10px] text-brand-400 font-mono">Standing By</span>
             </div>
 
             <!-- Active Cue Card -->
-            <div class="p-3 rounded-xl bg-brand-950/60 border border-brand-500/40">
-              <span class="text-[10px] uppercase font-bold text-brand-400 tracking-wider block mb-1">Active On Screen</span>
-              <p id="prompter-active-text" class="text-sm font-semibold text-white leading-relaxed">
+            <div class="p-2 rounded-lg bg-brand-950/60 border border-brand-500/40">
+              <span class="text-[9px] uppercase font-bold text-brand-400 tracking-wider block mb-0.5">Active On Screen</span>
+              <p id="prompter-active-text" class="text-xs font-semibold text-white leading-relaxed">
                 (Start recording to show lyrics)
               </p>
             </div>
 
             <!-- Upcoming Cue Card -->
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-              <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1">Coming Next</span>
-              <p id="prompter-next-text" class="text-xs font-medium text-slate-400 leading-relaxed truncate">
+            <div class="p-2 rounded-lg bg-slate-950 border border-slate-800">
+              <span class="text-[9px] uppercase font-bold text-slate-500 tracking-wider block mb-0.5">Coming Next</span>
+              <p id="prompter-next-text" class="text-[11px] font-medium text-slate-400 leading-relaxed truncate">
                 -
               </p>
             </div>
 
             <!-- Full upcoming cue list preview -->
-            <div class="space-y-1 max-h-48 overflow-y-auto pr-1">
-              <div id="prompter-cue-list" class="space-y-1.5">
+            <div class="space-y-1 max-h-24 overflow-y-auto pr-1">
+              <div id="prompter-cue-list" class="space-y-1">
                 <!-- Mini cue list item -->
               </div>
             </div>
           </div>
 
           <!-- Shortcuts Cheatsheet -->
-          <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
-            <p class="font-semibold text-slate-300 mb-1">Keyboard Shortcuts:</p>
-            <div class="flex justify-between"><span>Next Cue:</span> <kbd class="kbd">Space</kbd> or <kbd class="kbd">→</kbd></div>
-            <div class="flex justify-between"><span>Previous Cue:</span> <kbd class="kbd">←</kbd></div>
-            <div class="flex justify-between"><span>Blank / Hide Text:</span> <kbd class="kbd">B</kbd></div>
-            <div class="flex justify-between"><span>Switch Background:</span> <kbd class="kbd">1</kbd> - <kbd class="kbd">9</kbd></div>
+          <div class="p-2 rounded-lg bg-slate-900/50 border border-slate-800/80 text-[10px] text-slate-400 flex flex-wrap items-center justify-between gap-1">
+            <span><kbd class="kbd">Space</kbd> Next</span>
+            <span><kbd class="kbd">←</kbd> Prev</span>
+            <span><kbd class="kbd">B</kbd> Blank</span>
+            <span><kbd class="kbd">1-9</kbd> BG</span>
+            <span><kbd class="kbd">V</kbd> Next Vid</span>
           </div>
 
         </div>
@@ -1273,7 +1272,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
       <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed Version</span>
-          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.31</span>
+          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.32</span>
         </div>
         <div class="flex items-center justify-between text-xs text-slate-400">
           <span>Running Environment:</span>
@@ -1563,14 +1562,14 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
       </div>
 
       <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0">
-        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.31</span>
+        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.32</span>
         <button type="button" id="btn-close-help-footer" class="btn-primary px-5 py-1.5 text-xs">Got it, thanks!</button>
       </div>
     </div>
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.31"></script>
+  <script type="module" src="app.js?v=1.0.32"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {
