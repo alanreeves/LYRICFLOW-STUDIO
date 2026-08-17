@@ -227,6 +227,9 @@ export class AudioManager {
       this.audioElement.onerror = (err) => {
         reject(err);
       };
+    });
+  }
+
   async play() {
     await this.initAudioContext();
     return this.audioElement.play();
