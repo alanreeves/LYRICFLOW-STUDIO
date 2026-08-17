@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.30';
+export const APP_VERSION = '1.0.31';
 
 class App {
   constructor() {
@@ -2177,6 +2177,12 @@ class App {
   // 12. VERSION UPDATE NOTIFICATION POPUP
   // ==========================================
   _checkAppVersionUpdate() {
+    // Dynamically update on-screen version badges
+    const headerBadge = document.getElementById('app-version-badge');
+    if (headerBadge) headerBadge.textContent = `v${APP_VERSION}`;
+    const settingsBadge = document.getElementById('settings-version-badge');
+    if (settingsBadge) settingsBadge.textContent = `v${APP_VERSION}`;
+
     const updatedPopupFlag = sessionStorage.getItem('lyricflow_updated_popup');
     const storedVersion = localStorage.getItem('lyricflow_app_version');
 
@@ -2814,7 +2820,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.30').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.31').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
