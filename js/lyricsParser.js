@@ -180,28 +180,4 @@ export class LyricsParser {
     this.rawText = this.rawText.toUpperCase();
     this.parseCues();
   }
-
-  getDemoLyrics() {
-    return `[Verse 1]
-Walking through the neon city lights
-Chasing echoes in the middle of the night
-Every heartbeat syncs with the bassline low
-We find the places only dreamers know
-
-[Chorus]
-'Cause you were the sky and I was the ocean
-Drowning in colors and endless emotion
-Turn the music high, let the shadows ignite
-We are alive in the rhythm of tonight
-
-[Verse 2]
-Electric sparks across the midnight sky
-No yesterday and no goodbyes
-Just you and me inside the sonic sound
-Floating higher than the solid ground
-
-[Outro]
-We are alive in the rhythm of tonight
-Let the music take us to the morning light`;
-  }
 }

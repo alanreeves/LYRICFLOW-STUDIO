@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.27';
+export const APP_VERSION = '1.0.28';
 
 class App {
   constructor() {
@@ -53,7 +53,7 @@ class App {
     this._setupStudioControls();
     this._setupExportControls();
     this._setupGlobalShortcuts();
-    this._setupDemoLoader();
+    this._setupResetControls();
     this._setupVideoSpeedControls();
     this._setupProjectPersistenceControls();
     this._setupPwaInstall();
@@ -63,7 +63,7 @@ class App {
     this._checkAppVersionUpdate();
 
     // Default procedural backgrounds
-    this.mediaPool.loadDemoAssets();
+    this.mediaPool.loadDefaultBackgrounds();
     this._renderBgPool();
 
     // Update Lucide icons
@@ -1664,64 +1664,9 @@ class App {
   }
 
   // ==========================================
-  // 8. DEMO PROJECT LOADER & RESET
+  // 8. PROJECT RESET CONTROLS
   // ==========================================
-  _setupDemoLoader() {
-    document.getElementById('btn-load-demo')?.addEventListener('click', async () => {
-      try {
-        this.showToast('Generating procedural audio track & demo assets...', 'info');
-        
-        // 1. Generate audio track
-        const audioInfo = await this.audio.generateDemoSynthAudio();
-        const audioBadge = document.getElementById('audio-status-badge');
-        const audioPreview = document.getElementById('audio-preview-container');
-        const audioPlayer = document.getElementById('audio-player-preview');
-        const audioName = document.getElementById('audio-file-name');
-        const audioDur = document.getElementById('audio-file-duration');
-
-        if (audioBadge) {
-          audioBadge.className = 'badge-success';
-          audioBadge.textContent = 'Demo Track Ready';
-        }
-        if (audioPreview) audioPreview.classList.remove('hidden');
-        if (audioPlayer) audioPlayer.src = this.audio.audioUrl;
-        if (audioName) audioName.textContent = audioInfo.name;
-        if (audioDur) audioDur.textContent = this.audio.formatDuration(audioInfo.duration);
-
-        // 2. Load demo motion backgrounds
-        await this.mediaPool.loadDemoAssets();
-        this._renderBgPool();
-
-        // 3. Load demo lyrics
-        const demoLyricsText = this.lyrics.getDemoLyrics();
-        this.lyrics.setRawText(demoLyricsText);
-        const rawInput = document.getElementById('raw-lyrics-input');
-        if (rawInput) rawInput.value = demoLyricsText;
-
-        this._updateLyricsSummary();
-        this._updateCueListUI();
-
-        // 4. Default high-contrast visual styling
-        this._updateStyle({
-          fontFamily: 'Outfit',
-          fontWeight: '900',
-          fontSize: 52,
-          isUppercase: true,
-          strokeColor: '#000000',
-          strokeWidth: 8,
-          textColor: '#ffffff',
-          shadowColor: '#000000',
-          shadowBlur: 20
-        });
-
-        this.showToast('Demo project loaded! Ready to customize or record.', 'success');
-        this.goToStep(2);
-      } catch (e) {
-        console.error('Demo loading failed:', e);
-        this.showToast('Failed to generate demo', 'error');
-      }
-    });
-
+  _setupResetControls() {
     document.getElementById('btn-reset-all')?.addEventListener('click', async () => {
       const confirmed = await this.showAppConfirm({
         title: 'Reset Entire Project?',
@@ -2737,7 +2682,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.27').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.28').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

@@ -422,7 +422,7 @@ export class MediaPool {
     return asset;
   }
 
-  async loadDemoAssets() {
+  async loadDefaultBackgrounds() {
     this.clear();
 
     // 1. Audio Reactive: Cyber Liquid Aurora (Cyber Neon)
@@ -443,6 +443,10 @@ export class MediaPool {
     if (this.assets.length > 0) {
       this.setActiveAsset(this.assets[0].id);
     }
+  }
+
+  async loadDemoAssets() {
+    return this.loadDefaultBackgrounds();
   }
 
   _generateProceduralThumbnail(colors) {
