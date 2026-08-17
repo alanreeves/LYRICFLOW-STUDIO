@@ -48,10 +48,14 @@
   <!-- FFmpeg.wasm for Browser-Side MP4 Generation -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
-  <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css?v=1.0.25">
+  <link rel="stylesheet" href="style.css?v=1.0.26">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -1393,7 +1397,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.25"></script>
+  <script type="module" src="app.js?v=1.0.26"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

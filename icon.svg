@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a0d1a"/>
+      <stop offset="50%" stop-color="#141432"/>
+      <stop offset="100%" stop-color="#241348"/>
+    </linearGradient>
+
+    <!-- Note Gradient -->
+    <linearGradient id="noteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="48%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+
+    <!-- Rim Gradient -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#f472b6" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Radial Center Glow -->
+    <radialGradient id="centerGlow" cx="50%" cy="48%" r="45%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.75"/>
+    </filter>
+
+    <!-- Neon Glow Filter -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect x="44" y="44" width="936" height="936" rx="216" ry="216" fill="url(#bgGrad)"/>
+  <rect x="44" y="44" width="936" height="936" rx="216" ry="216" fill="url(#centerGlow)"/>
+  <rect x="44" y="44" width="936" height="936" rx="216" ry="216" fill="none" stroke="url(#rimGrad)" stroke-width="6"/>
+
+  <!-- Fluid Sound Waves in Backdrop -->
+  <g opacity="0.65" filter="url(#neonGlow)">
+    <path d="M 84 680 Q 250 635, 450 680 T 800 680 Q 880 690, 940 680" fill="none" stroke="#06b6d4" stroke-width="7" stroke-linecap="round"/>
+    <path d="M 84 715 Q 280 770, 520 715 T 840 715 Q 900 705, 940 715" fill="none" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+    <path d="M 84 750 Q 240 700, 480 750 T 820 750 Q 890 765, 940 750" fill="none" stroke="#ec4899" stroke-width="7" stroke-linecap="round"/>
+    <path d="M 84 785 Q 320 825, 560 785 T 860 785 Q 910 775, 940 785" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <!-- Music Note Artwork with Shadow and Neon Glow -->
+  <g filter="url(#shadowFilter)">
+    <g filter="url(#neonGlow)">
+      <!-- Left Note Head (Tilted) -->
+      <ellipse cx="370" cy="630" rx="74" ry="54" transform="rotate(-22 370 630)" fill="url(#noteGrad)"/>
+      <!-- Right Note Head (Tilted) -->
+      <ellipse cx="670" cy="550" rx="74" ry="54" transform="rotate(-22 670 550)" fill="url(#noteGrad)"/>
+      
+      <!-- Stems -->
+      <rect x="406" y="250" width="32" height="380" fill="url(#noteGrad)"/>
+      <rect x="706" y="170" width="32" height="380" fill="url(#noteGrad)"/>
+
+      <!-- Primary Top Connecting Beam -->
+      <polygon points="406,250 738,170 738,238 406,318" fill="url(#noteGrad)"/>
+
+      <!-- Secondary Lower Beam -->
+      <polygon points="406,345 738,265 738,315 406,395" fill="url(#noteGrad)"/>
+    </g>
+  </g>
+
+  <!-- Specular Sheen Highlights -->
+  <line x1="416" y1="258" x2="728" y2="178" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <line x1="412" y1="270" x2="412" y2="600" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+  <line x1="712" y1="190" x2="712" y2="520" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Sparkle Accents -->
+  <g fill="#ffffff">
+    <!-- Star 1 Top Right -->
+    <path d="M 742 140 Q 742 168, 770 168 Q 742 168, 742 196 Q 742 168, 714 168 Q 742 168, 742 140" fill="#ffffff" opacity="0.95"/>
+    <!-- Star 2 Top Left -->
+    <path d="M 340 210 Q 340 230, 360 230 Q 340 230, 340 250 Q 340 230, 320 230 Q 340 230, 340 210" fill="#06b6d4" opacity="0.85"/>
+    <!-- Star 3 Right Mid -->
+    <path d="M 780 462 Q 780 480, 798 480 Q 780 480, 780 498 Q 780 480, 762 480 Q 780 480, 780 462" fill="#ec4899" opacity="0.85"/>
+  </g>
+</svg>

@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.25';
+const APP_VERSION = '1.0.26';
 const CACHE_NAME = `lyricflow-studio-v${APP_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -7,6 +7,12 @@ const STATIC_ASSETS = [
   './style.css',
   './app.js',
   './manifest.json',
+  './favicon.ico',
+  './icon.ico',
+  './icon.png',
+  './icon-192.png',
+  './icon-512.png',
+  './icon.svg',
   './js/audioManager.js',
   './js/mediaPool.js',
   './js/lyricsParser.js',
