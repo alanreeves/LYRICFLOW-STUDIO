@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.32';
+export const APP_VERSION = '1.0.33';
 
 class App {
   constructor() {
@@ -1714,7 +1714,10 @@ class App {
 
     if (videoPlayer) {
       videoPlayer.src = metadata.url;
-      videoPlayer.play().catch(() => {});
+      try {
+        videoPlayer.pause();
+        videoPlayer.currentTime = 0;
+      } catch (e) {}
     }
 
     const extLabel = metadata.extension.toUpperCase();
@@ -2820,7 +2823,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.32').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.33').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
