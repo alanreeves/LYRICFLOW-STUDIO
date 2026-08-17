@@ -22,14 +22,24 @@ export class LyricsParser {
     this.parseCues();
   }
 
+  _cleanVerseIndicators(text) {
+    if (!text) return '';
+    return text
+      // Remove entire lines that are verse indicators: [Verse 1], [Verse 2], [Verse], [verse n], etc.
+      .replace(/^[ \t]*\[Verse(?:\s*\d+[\w]*)?\][ \t]*\r?\n?/gmi, '')
+      // Strip any remaining inline verse tags
+      .replace(/\[Verse(?:\s*\d+[\w]*)?\]\s*/gi, '');
+  }
+
   parseCues() {
-    if (!this.rawText.trim()) {
+    const cleanedRaw = this._cleanVerseIndicators(this.rawText);
+    if (!cleanedRaw.trim()) {
       this.cues = [];
       if (this.onCuesUpdatedCallback) this.onCuesUpdatedCallback(this.cues);
       return this.cues;
     }
 
-    const raw = this.rawText;
+    const raw = cleanedRaw;
     let chunks = [];
 
     switch (this.delimitationMode) {
@@ -133,6 +143,7 @@ export class LyricsParser {
       .replace(/\[slide\]\s*/gi, '')
       .replace(/\[(?:video|vid)(?:\s*[:=]\s*|\s+)[^\]]+\]\s*/gi, '')
       .replace(/\[(?:video|vid)\]\s*/gi, '')
+      .replace(/\[Verse(?:\s*\d+[\w]*)?\]\s*/gi, '')
       .trim();
 
     return {
@@ -153,6 +164,7 @@ export class LyricsParser {
       this.cues[index].slideTarget = tagInfo.slideTarget;
       this.cues[index].autoVideo = tagInfo.hasVideoTag;
       this.cues[index].videoTarget = tagInfo.videoTarget;
+      this.rebuildRawTextFromCues();
       if (this.onCuesUpdatedCallback) this.onCuesUpdatedCallback(this.cues);
     }
   }
@@ -162,12 +174,25 @@ export class LyricsParser {
       this.cues.splice(index, 1);
       // Re-index
       this.cues.forEach((c, idx) => c.index = idx);
+      this.rebuildRawTextFromCues();
       if (this.onCuesUpdatedCallback) this.onCuesUpdatedCallback(this.cues);
     }
   }
 
+  rebuildRawTextFromCues() {
+    this.rawText = this.cues.map(c => {
+      let tags = '';
+      if (c.autoSlide && c.slideTarget) tags += `[slide: ${c.slideTarget}] `;
+      else if (c.autoSlide) tags += `[slide] `;
+      if (c.autoVideo && c.videoTarget) tags += `[video: ${c.videoTarget}] `;
+      else if (c.autoVideo) tags += `[video] `;
+      return (tags + c.text).trim();
+    }).join('\n\n');
+    return this.rawText;
+  }
+
   trimAll() {
-    this.rawText = this.rawText
+    this.rawText = this._cleanVerseIndicators(this.rawText)
       .split('\n')
       .map(line => line.trim())
       .filter((line, i, arr) => line !== '' || (arr[i - 1] !== ''))

@@ -52,7 +52,7 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css?v=1.0.28">
+  <link rel="stylesheet" href="style.css?v=1.0.29">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -115,6 +115,11 @@
         <button id="btn-load-project" class="text-xs font-medium px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0" title="Load project file from disk ready for live studio session">
           <i data-lucide="folder-open" class="w-3.5 h-3.5 text-cyan-400"></i>
           <span class="hidden sm:inline">Reload</span>
+        </button>
+
+        <button id="btn-open-help" class="text-xs font-medium px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0" title="Comprehensive In-App Help Guide & Shortcuts">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span class="hidden sm:inline">Help</span>
         </button>
 
         <button id="btn-open-settings" class="text-xs font-medium px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0" title="Settings, Updates & Reload">
@@ -383,6 +388,10 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <button id="btn-save-lyrics-file" class="btn-secondary text-xs flex items-center gap-1.5 border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/40 hover:text-white hover:border-emerald-500/60" title="Save changed lyrics back to file/disk">
+            <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Save Lyrics</span>
+          </button>
           <button id="btn-format-trim" class="btn-secondary text-xs" title="Trim extra spaces and empty lines">
             <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
             <span>Trim Text</span>
@@ -469,45 +478,56 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Left: Styling Controls (7 cols) -->
-        <div class="lg:col-span-7 space-y-5">
+        <!-- Left: Styling Controls (7 cols) Compacted Studio Layout -->
+        <div class="lg:col-span-7 space-y-3.5">
 
           <!-- Canvas Aspect Ratio & Video Frame -->
-          <div class="card p-5 space-y-4">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <i data-lucide="proportions" class="w-4 h-4 text-brand-400"></i>
-              <h3 class="font-semibold text-white text-sm">Video Aspect Ratio & Canvas Format</h3>
+          <div class="card p-4 space-y-2.5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="proportions" class="w-4 h-4 text-brand-400"></i>
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Canvas Format & Ratio</h3>
+              </div>
+              <span class="text-[10px] text-slate-500 font-mono">1080p HD</span>
             </div>
-            <div class="grid grid-cols-3 gap-3">
-              <button class="aspect-ratio-btn active" data-ratio="16-9">
-                <div class="w-8 h-5 border-2 border-current rounded-sm mb-1.5"></div>
-                <span class="font-medium text-xs">16:9 Landscape</span>
-                <span class="text-[10px] text-slate-400">YouTube (1920x1080)</span>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="aspect-ratio-btn active py-2 px-3 flex flex-row items-center justify-center gap-2" data-ratio="16-9">
+                <div class="w-5 h-3.5 border-2 border-current rounded-xs shrink-0"></div>
+                <div class="text-left">
+                  <span class="font-bold text-xs block leading-tight">16:9 Landscape</span>
+                  <span class="text-[10px] text-slate-400 block leading-none">YouTube (1920x1080)</span>
+                </div>
               </button>
-              <button class="aspect-ratio-btn" data-ratio="9-16">
-                <div class="w-4 h-7 border-2 border-current rounded-sm mb-1.5"></div>
-                <span class="font-medium text-xs">9:16 Vertical</span>
-                <span class="text-[10px] text-slate-400">TikTok / Reels (1080x1920)</span>
+              <button class="aspect-ratio-btn py-2 px-3 flex flex-row items-center justify-center gap-2" data-ratio="9-16">
+                <div class="w-3 h-5 border-2 border-current rounded-xs shrink-0"></div>
+                <div class="text-left">
+                  <span class="font-bold text-xs block leading-tight">9:16 Vertical</span>
+                  <span class="text-[10px] text-slate-400 block leading-none">TikTok / Reels</span>
+                </div>
               </button>
-              <button class="aspect-ratio-btn" data-ratio="1-1">
-                <div class="w-6 h-6 border-2 border-current rounded-sm mb-1.5"></div>
-                <span class="font-medium text-xs">1:1 Square</span>
-                <span class="text-[10px] text-slate-400">Instagram (1080x1080)</span>
+              <button class="aspect-ratio-btn py-2 px-3 flex flex-row items-center justify-center gap-2" data-ratio="1-1">
+                <div class="w-4 h-4 border-2 border-current rounded-xs shrink-0"></div>
+                <div class="text-left">
+                  <span class="font-bold text-xs block leading-tight">1:1 Square</span>
+                  <span class="text-[10px] text-slate-400 block leading-none">Instagram Feed</span>
+                </div>
               </button>
             </div>
           </div>
 
           <!-- Typography Controls -->
-          <div class="card p-5 space-y-4">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <i data-lucide="type" class="w-4 h-4 text-pink-400"></i>
-              <h3 class="font-semibold text-white text-sm">Typography & Font Styling</h3>
+          <div class="card p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="type" class="w-4 h-4 text-pink-400"></i>
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Typography & Sizing</h3>
+              </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-medium text-slate-300 mb-1.5">Font Family</label>
-                <select id="font-family-select" class="input-select w-full">
+                <label class="block text-[11px] font-medium text-slate-400 mb-1">Font Family</label>
+                <select id="font-family-select" class="input-select w-full text-xs py-1.5">
                   <option value="Inter" selected>Inter (Modern Clean)</option>
                   <option value="Outfit">Outfit (Bold Geometric)</option>
                   <option value="Bebas Neue">Bebas Neue (Cinematic Display)</option>
@@ -516,125 +536,131 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
                   <option value="Space Grotesk">Space Grotesk (Tech / Cyber)</option>
                   <option value="Cinzel">Cinzel (Epic / Regal)</option>
                   <option value="Bangers">Bangers (Comic / Pop)</option>
-                  <option value="Permanent Marker">Permanent Marker (Grunge / Street)</option>
+                  <option value="Permanent Marker">Permanent Marker (Grunge)</option>
                 </select>
               </div>
 
               <div>
-                <label class="block text-xs font-medium text-slate-300 mb-1.5">Font Style & Weight</label>
-                <div class="flex items-center gap-2">
-                  <select id="font-weight-select" class="input-select flex-1">
+                <label class="block text-[11px] font-medium text-slate-400 mb-1">Font Weight & Styles</label>
+                <div class="flex items-center gap-1.5">
+                  <select id="font-weight-select" class="input-select flex-1 text-xs py-1.5">
                     <option value="400">Regular (400)</option>
                     <option value="600">Semi-Bold (600)</option>
                     <option value="700" selected>Bold (700)</option>
                     <option value="900">Black / Ultra (900)</option>
                   </select>
-                  <button id="btn-toggle-italic" class="btn-secondary px-3 py-2 text-xs font-semibold" title="Toggle Italic">
-                    <i data-lucide="italic" class="w-4 h-4"></i>
+                  <button id="btn-toggle-italic" class="btn-secondary px-2.5 py-1.5 text-xs font-semibold" title="Toggle Italic">
+                    <i data-lucide="italic" class="w-3.5 h-3.5"></i>
                   </button>
-                  <button id="btn-toggle-uppercase" class="btn-secondary px-3 py-2 text-xs font-semibold" title="Toggle Uppercase">
-                    <span class="font-bold">AA</span>
+                  <button id="btn-toggle-uppercase" class="btn-secondary px-2.5 py-1.5 text-xs font-semibold" title="Toggle Uppercase">
+                    <span class="font-bold text-xs">AA</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Sliders: Font Size, Line Height, Max Width -->
-            <div class="space-y-3 pt-2">
-              <div>
-                <div class="flex justify-between text-xs text-slate-300 mb-1">
+            <!-- Compact 2-Column Sliders: Font Size & Max Width -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-1">
                   <span>Font Size</span>
-                  <span id="font-size-val" class="font-mono text-brand-400">48px</span>
+                  <span id="font-size-val" class="font-mono text-brand-400 font-bold">48px</span>
                 </div>
-                <input type="range" id="font-size-slider" min="24" max="96" value="48" class="slider-range">
+                <input type="range" id="font-size-slider" min="24" max="96" value="48" class="slider-range w-full">
               </div>
 
-              <div>
-                <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-1">
                   <span>Max Width Margins</span>
-                  <span id="max-width-val" class="font-mono text-brand-400">85%</span>
+                  <span id="max-width-val" class="font-mono text-brand-400 font-bold">85%</span>
                 </div>
-                <input type="range" id="max-width-slider" min="50" max="95" value="85" class="slider-range">
+                <input type="range" id="max-width-slider" min="50" max="95" value="85" class="slider-range w-full">
               </div>
             </div>
           </div>
 
           <!-- Color, Outline, Shadow, and Pill Highlight -->
-          <div class="card p-5 space-y-4">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <i data-lucide="brush" class="w-4 h-4 text-cyan-400"></i>
-              <h3 class="font-semibold text-white text-sm">Colors, Stroke & Legibility FX</h3>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <label class="block text-[11px] font-medium text-slate-400 mb-1">Text Color</label>
-                <div class="flex items-center gap-2">
-                  <input type="color" id="text-color-picker" value="#ffffff" class="color-picker-input">
-                  <span id="text-color-hex" class="text-xs font-mono text-slate-300">#FFFFFF</span>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[11px] font-medium text-slate-400 mb-1">Outline Stroke</label>
-                <div class="flex items-center gap-2">
-                  <input type="color" id="stroke-color-picker" value="#000000" class="color-picker-input">
-                  <span id="stroke-color-hex" class="text-xs font-mono text-slate-300">#000000</span>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[11px] font-medium text-slate-400 mb-1">Shadow Color</label>
-                <div class="flex items-center gap-2">
-                  <input type="color" id="shadow-color-picker" value="#000000" class="color-picker-input">
-                  <span id="shadow-color-hex" class="text-xs font-mono text-slate-300">#000000</span>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[11px] font-medium text-slate-400 mb-1">Box Highlight</label>
-                <div class="flex items-center gap-2">
-                  <input type="color" id="box-color-picker" value="#000000" class="color-picker-input">
-                  <span id="box-color-hex" class="text-xs font-mono text-slate-300">#000000</span>
-                </div>
+          <div class="card p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="brush" class="w-4 h-4 text-cyan-400"></i>
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Colors & Stroke Legibility</h3>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <div class="flex justify-between text-xs text-slate-300 mb-1">
+            <!-- Inline 4-Color Swatch Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5">
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Text</span>
+                  <span id="text-color-hex" class="text-[10px] font-mono text-slate-300 block">#FFFFFF</span>
+                </div>
+                <input type="color" id="text-color-picker" value="#ffffff" class="color-picker-input shrink-0">
+              </div>
+
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5">
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Stroke</span>
+                  <span id="stroke-color-hex" class="text-[10px] font-mono text-slate-300 block">#000000</span>
+                </div>
+                <input type="color" id="stroke-color-picker" value="#000000" class="color-picker-input shrink-0">
+              </div>
+
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5">
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Shadow</span>
+                  <span id="shadow-color-hex" class="text-[10px] font-mono text-slate-300 block">#000000</span>
+                </div>
+                <input type="color" id="shadow-color-picker" value="#000000" class="color-picker-input shrink-0">
+              </div>
+
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5">
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Box Pill</span>
+                  <span id="box-color-hex" class="text-[10px] font-mono text-slate-300 block">#000000</span>
+                </div>
+                <input type="color" id="box-color-picker" value="#000000" class="color-picker-input shrink-0">
+              </div>
+            </div>
+
+            <!-- Compact 2-Column Sliders: Stroke Width & Box Opacity -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-1">
                   <span>Stroke Width (Border)</span>
-                  <span id="stroke-width-val" class="font-mono text-cyan-400">6px</span>
+                  <span id="stroke-width-val" class="font-mono text-cyan-400 font-bold">6px</span>
                 </div>
-                <input type="range" id="stroke-width-slider" min="0" max="20" value="6" class="slider-range">
+                <input type="range" id="stroke-width-slider" min="0" max="20" value="6" class="slider-range w-full">
               </div>
 
-              <div>
-                <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-1">
                   <span>Box Background Opacity</span>
-                  <span id="box-opacity-val" class="font-mono text-cyan-400">0%</span>
+                  <span id="box-opacity-val" class="font-mono text-cyan-400 font-bold">0%</span>
                 </div>
-                <input type="range" id="box-opacity-slider" min="0" max="90" value="0" class="slider-range">
+                <input type="range" id="box-opacity-slider" min="0" max="90" value="0" class="slider-range w-full">
               </div>
             </div>
           </div>
 
           <!-- Positioning & Placement Mode -->
-          <div class="card p-5 space-y-4">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <i data-lucide="move" class="w-4 h-4 text-emerald-400"></i>
-              <h3 class="font-semibold text-white text-sm">Positioning & Alignment Mode</h3>
+          <div class="card p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="move" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Positioning & Alignment</h3>
+              </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <!-- Mode: Fixed vs Tap Points -->
               <div>
-                <label class="block text-xs font-medium text-slate-300 mb-2">Positioning Style</label>
+                <label class="block text-[11px] font-medium text-slate-400 mb-1">Positioning Mode</label>
                 <div class="flex rounded-lg bg-slate-950 p-1 border border-slate-800">
-                  <button id="pos-mode-fixed" class="flex-1 py-1.5 px-3 rounded text-xs font-medium bg-brand-600 text-white transition">
-                    Fixed Preset
+                  <button id="pos-mode-fixed" class="flex-1 py-1 px-2.5 rounded text-xs font-medium bg-brand-600 text-white transition">
+                    Fixed Presets
                   </button>
-                  <button id="pos-mode-tap" class="flex-1 py-1.5 px-3 rounded text-xs font-medium text-slate-400 hover:text-white transition">
+                  <button id="pos-mode-tap" class="flex-1 py-1 px-2.5 rounded text-xs font-medium text-slate-400 hover:text-white transition">
                     Tap Points (1-6)
                   </button>
                 </div>
@@ -642,11 +668,11 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
 
               <!-- Fixed Presets -->
               <div id="fixed-pos-controls">
-                <label class="block text-xs font-medium text-slate-300 mb-2">Vertical Alignment</label>
-                <div class="grid grid-cols-3 gap-2">
-                  <button class="fixed-preset-btn" data-align="top">Top</button>
-                  <button class="fixed-preset-btn active" data-align="center">Center</button>
-                  <button class="fixed-preset-btn" data-align="bottom">Lower 3rd</button>
+                <label class="block text-[11px] font-medium text-slate-400 mb-1">Vertical Anchor</label>
+                <div class="grid grid-cols-3 gap-1.5">
+                  <button class="fixed-preset-btn text-xs py-1" data-align="top">Top</button>
+                  <button class="fixed-preset-btn active text-xs py-1" data-align="center">Center</button>
+                  <button class="fixed-preset-btn text-xs py-1" data-align="bottom">Lower 3rd</button>
                 </div>
               </div>
 
@@ -667,18 +693,18 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
 
             <!-- Text Align -->
             <div>
-              <label class="block text-xs font-medium text-slate-300 mb-2">Horizontal Alignment</label>
+              <label class="block text-[11px] font-medium text-slate-400 mb-1">Horizontal Text Alignment</label>
               <div class="flex gap-2">
-                <button class="text-align-btn active" data-align="center">
-                  <i data-lucide="align-center" class="w-4 h-4"></i>
+                <button class="text-align-btn active flex-1 py-1 text-xs" data-align="center">
+                  <i data-lucide="align-center" class="w-3.5 h-3.5"></i>
                   <span>Center</span>
                 </button>
-                <button class="text-align-btn" data-align="left">
-                  <i data-lucide="align-left" class="w-4 h-4"></i>
+                <button class="text-align-btn flex-1 py-1 text-xs" data-align="left">
+                  <i data-lucide="align-left" class="w-3.5 h-3.5"></i>
                   <span>Left</span>
                 </button>
-                <button class="text-align-btn" data-align="right">
-                  <i data-lucide="align-right" class="w-4 h-4"></i>
+                <button class="text-align-btn flex-1 py-1 text-xs" data-align="right">
+                  <i data-lucide="align-right" class="w-3.5 h-3.5"></i>
                   <span>Right</span>
                 </button>
               </div>
@@ -686,52 +712,48 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
           </div>
 
           <!-- Transitions & Animation FX -->
-          <div class="card p-5 space-y-4">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <i data-lucide="sparkles" class="w-4 h-4 text-brand-accent"></i>
-              <h3 class="font-semibold text-white text-sm">Transitions & Animation FX</h3>
+          <div class="card p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-brand-accent"></i>
+                <h3 class="font-semibold text-white text-xs uppercase tracking-wider">Transitions & Timing</h3>
+              </div>
             </div>
 
             <!-- Transition Style Grid -->
             <div>
-              <label class="block text-xs font-medium text-slate-300 mb-2">Transition Style</label>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="transition-type-container">
-                <button type="button" class="transition-type-btn active" data-transition="fade">
-                  <span class="font-semibold text-xs text-white">Fade In / Out</span>
-                  <span class="text-[10px] text-slate-400">Clean fade (Default)</span>
+              <label class="block text-[11px] font-medium text-slate-400 mb-1.5">Transition Animation</label>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5" id="transition-type-container">
+                <button type="button" class="transition-type-btn active p-2" data-transition="fade">
+                  <span class="font-bold text-xs text-white block">Fade In / Out</span>
+                  <span class="text-[9px] text-slate-400 block leading-tight">Clean fade (Default)</span>
                 </button>
-                <button type="button" class="transition-type-btn" data-transition="crossfade">
-                  <span class="font-semibold text-xs text-white">Smooth Crossfade</span>
-                  <span class="text-[10px] text-slate-400">Graceful blend</span>
+                <button type="button" class="transition-type-btn p-2" data-transition="crossfade">
+                  <span class="font-bold text-xs text-white block">Smooth Crossfade</span>
+                  <span class="text-[9px] text-slate-400 block leading-tight">Graceful blend</span>
                 </button>
-                <button type="button" class="transition-type-btn" data-transition="slide_up">
-                  <span class="font-semibold text-xs text-white">Slide Up & Fade</span>
-                  <span class="text-[10px] text-slate-400">Rising glide</span>
+                <button type="button" class="transition-type-btn p-2" data-transition="slide_up">
+                  <span class="font-bold text-xs text-white block">Slide Up & Fade</span>
+                  <span class="text-[9px] text-slate-400 block leading-tight">Rising glide</span>
                 </button>
-                <button type="button" class="transition-type-btn" data-transition="zoom_punch">
-                  <span class="font-semibold text-xs text-white">Zoom Punch</span>
-                  <span class="text-[10px] text-slate-400">Scale punch in</span>
+                <button type="button" class="transition-type-btn p-2" data-transition="zoom_punch">
+                  <span class="font-bold text-xs text-white block">Zoom Punch</span>
+                  <span class="text-[9px] text-slate-400 block leading-tight">Scale punch in</span>
                 </button>
-                <button type="button" class="transition-type-btn" data-transition="appear">
-                  <span class="font-semibold text-xs text-white">Instant Appear</span>
-                  <span class="text-[10px] text-slate-400">Direct pop (Cut)</span>
+                <button type="button" class="transition-type-btn p-2 col-span-2 sm:col-span-1" data-transition="appear">
+                  <span class="font-bold text-xs text-white block">Instant Appear</span>
+                  <span class="text-[9px] text-slate-400 block leading-tight">Direct pop (Cut)</span>
                 </button>
               </div>
             </div>
 
             <!-- Transition Speed Slider -->
-            <div class="pt-2">
-              <div class="flex justify-between text-xs text-slate-300 mb-1">
-                <span>Transition Speed / Duration</span>
+            <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+              <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                <span>Transition Duration / Speed</span>
                 <span id="transition-speed-val" class="font-mono text-brand-400 font-bold">0.40s (Smooth)</span>
               </div>
-              <input type="range" id="transition-speed-slider" min="0.1" max="1.5" step="0.05" value="0.4" class="slider-range">
-              <div class="flex justify-between text-[10px] text-slate-500 pt-1">
-                <span>0.10s (Fast)</span>
-                <span>0.40s (Standard)</span>
-                <span>0.80s (Smooth)</span>
-                <span>1.50s (Slow)</span>
-              </div>
+              <input type="range" id="transition-speed-slider" min="0.1" max="1.5" step="0.05" value="0.4" class="slider-range w-full">
             </div>
           </div>
 
@@ -1388,8 +1410,167 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
     </div>
   </div>
 
+  <!-- Comprehensive Help Guide Modal -->
+  <div id="help-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="app-dialog-backdrop fixed inset-0"></div>
+    <div class="app-dialog-card relative w-full max-w-3xl rounded-2xl p-6 text-slate-100 z-10 space-y-5 border border-slate-700 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-display text-white">LyricFlow Studio - User Guide & Reference</h3>
+            <p class="text-xs text-slate-400">Comprehensive manual for synchronized lyrics video production</p>
+          </div>
+        </div>
+        <button id="btn-close-help" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Category Navigation Tabs -->
+      <div class="flex items-center gap-1.5 border-b border-slate-800 pb-2 overflow-x-auto shrink-0 text-xs">
+        <button type="button" class="help-tab-btn active px-3 py-1.5 rounded-lg font-semibold bg-brand-600 text-white transition" data-target="help-tab-workflow">Workflow</button>
+        <button type="button" class="help-tab-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition" data-target="help-tab-media">Media & Audio</button>
+        <button type="button" class="help-tab-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition" data-target="help-tab-lyrics">Lyrics & Tags</button>
+        <button type="button" class="help-tab-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition" data-target="help-tab-styling">Style & Layout</button>
+        <button type="button" class="help-tab-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition" data-target="help-tab-studio">Live Studio</button>
+        <button type="button" class="help-tab-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition" data-target="help-tab-shortcuts">Shortcuts</button>
+      </div>
+
+      <!-- Tab Contents (Scrollable) -->
+      <div class="flex-1 overflow-y-auto pr-1 space-y-4 text-xs text-slate-300 leading-relaxed">
+        
+        <!-- Tab 1: Workflow Overview -->
+        <div id="help-tab-workflow" class="help-tab-content space-y-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-[11px]">1</span>
+              The 5-Step Creation Process
+            </h4>
+            <p class="text-slate-300">LyricFlow Studio creates high-definition synchronized lyric videos in 5 streamlined steps:</p>
+            <ol class="list-decimal list-inside space-y-1 text-slate-400 pl-1">
+              <li><strong class="text-white">Step 1 (Media Pool & Audio):</strong> Load your song (MP3/WAV) and upload background videos, images, or choose live audio-reactive visuals.</li>
+              <li><strong class="text-white">Step 2 (Lyrics & Delimitation):</strong> Paste or load lyrics, choose grouping mode, format text, and save changes back to disk.</li>
+              <li><strong class="text-white">Step 3 (Style & Layout):</strong> Select 16:9, 9:16, or 1:1 format, customize fonts, stroke outlines, box highlights, and set 6-point custom tap positions.</li>
+              <li><strong class="text-white">Step 4 (Live Studio Recording):</strong> Hit Record & Spacebar to tap lyrics in real time while singing or listening.</li>
+              <li><strong class="text-white">Step 5 (Export & Playback):</strong> Instant hardware-accelerated HD video generation ready for download!</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Tab 2: Media & Audio -->
+        <div id="help-tab-media" class="help-tab-content hidden space-y-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="music" class="w-4 h-4 text-brand-400"></i> Audio Tracks & Background Pool
+            </h4>
+            <ul class="space-y-1.5 text-slate-400">
+              <li>• <strong class="text-white">Audio Formats:</strong> Supports standard MP3, WAV, AAC, and FLAC files with real-time waveform & spectrum telemetry.</li>
+              <li>• <strong class="text-white">Video Backgrounds:</strong> MP4 and WebM motion loops. Video speed can be slowed down from 0.125x (1/8 speed) to 3.0x in Live Studio.</li>
+              <li>• <strong class="text-white">Image Slideshows:</strong> Upload multiple images at once. The app sorts them naturally and enables auto-slide advancing with Shift+Space or cue tags.</li>
+              <li>• <strong class="text-white">Audio Reactive Visuals:</strong> Choose from 5 live procedural styles (Cyber Liquid Aurora, Fluid Waveforms, Silk Streams, Ambient Nebula, Tidal Swells) with dynamic color palettes that pulse to your bass & rhythm.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 3: Lyrics & Tags -->
+        <div id="help-tab-lyrics" class="help-tab-content hidden space-y-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-cyan-400"></i> Lyrics Formatting & Media Tags
+            </h4>
+            <ul class="space-y-1.5 text-slate-400">
+              <li>• <strong class="text-white">Automatic [Verse n] Stripping:</strong> Lines like <code>[Verse 1]</code>, <code>[Verse 2]</code>, <code>[Chorus]</code>, or <code>[verse n]</code> are automatically filtered so section labels don't clutter your cue stream.</li>
+              <li>• <strong class="text-white">Punctuation Cleaning:</strong> On-screen display strips distracting commas, periods, colons, and semi-colons while keeping exclamation marks, questions, and contractions intact.</li>
+              <li>• <strong class="text-white">Auto Slide Switch Tag:</strong> Add <code>[slide: filename.jpg]</code> or <code>[slide: 2]</code> or <code>[slide]</code> to any cue to trigger a specific background slide automatically when that lyric is fired!</li>
+              <li>• <strong class="text-white">Auto Video Switch Tag:</strong> Add <code>[video: filename.mp4]</code> or <code>[video]</code> to switch motion backgrounds automatically with lyrics.</li>
+              <li>• <strong class="text-white">Save Lyrics Button:</strong> Directly write your edited text and formatting back to your file on disk.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 4: Styling & Layout -->
+        <div id="help-tab-styling" class="help-tab-content hidden space-y-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="layout" class="w-4 h-4 text-pink-400"></i> Styling, Positioning & Tap Points
+            </h4>
+            <ul class="space-y-1.5 text-slate-400">
+              <li>• <strong class="text-white">Aspect Ratios:</strong> 16:9 Landscape for YouTube, 9:16 Vertical for TikTok/Reels/Shorts, 1:1 Square for Instagram.</li>
+              <li>• <strong class="text-white">Typography & Legibility:</strong> Outlines, drop shadows, and pill box backgrounds ensure crisp readability across bright or chaotic background footage.</li>
+              <li>• <strong class="text-white">6-Point Custom Tap Positioning:</strong> Switch positioning to "Tap Points (1-6)", then click anywhere on the live preview screen to place ordered landing markers. When recording, your lyrics will glide dynamically through your custom points!</li>
+              <li>• <strong class="text-white">Transitions:</strong> Choose between Fade, Smooth Crossfade, Slide Up, Zoom Punch, or Instant Appear.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 5: Live Studio -->
+        <div id="help-tab-studio" class="help-tab-content hidden space-y-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="play" class="w-4 h-4 text-emerald-400"></i> Live Recording Studio Controls
+            </h4>
+            <ul class="space-y-1.5 text-slate-400">
+              <li>• <strong class="text-white">Spacebar:</strong> Advances to the next lyric cue instantly.</li>
+              <li>• <strong class="text-white">Shift + Spacebar:</strong> Advances lyric cue AND switches to the next slideshow photo simultaneously.</li>
+              <li>• <strong class="text-white">B Key:</strong> Toggles blank cue (temporarily clears text from screen for instrumental solos).</li>
+              <li>• <strong class="text-white">1 to 9 Keys:</strong> Switch background visual assets live on the fly during recording.</li>
+              <li>• <strong class="text-white">Left Arrow [←] / Right Arrow [→]:</strong> Step backward and forward through cues.</li>
+              <li>• <strong class="text-white">Auto-Stop Limit:</strong> Choose to stop recording automatically when audio ends, after 30s/60s, or specify custom seconds.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 6: Shortcuts Reference -->
+        <div id="help-tab-shortcuts" class="help-tab-content hidden space-y-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <h4 class="text-sm font-bold text-white mb-2">Global Keyboard Shortcuts</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Advance Cue</span>
+                <kbd class="kbd font-mono">Space</kbd> or <kbd class="kbd font-mono">→</kbd>
+              </div>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Advance Cue & Slide</span>
+                <kbd class="kbd font-mono">Shift + Space</kbd>
+              </div>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Previous Cue</span>
+                <kbd class="kbd font-mono">←</kbd>
+              </div>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Blank Screen / Hide Text</span>
+                <kbd class="kbd font-mono">B</kbd>
+              </div>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Switch Background (1-9)</span>
+                <kbd class="kbd font-mono">1</kbd> - <kbd class="kbd font-mono">9</kbd>
+              </div>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Next Video BG</span>
+                <kbd class="kbd font-mono">V</kbd>
+              </div>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 flex justify-between items-center">
+                <span>Save Project to Disk</span>
+                <kbd class="kbd font-mono">Ctrl + S</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0">
+        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.29</span>
+        <button type="button" id="btn-close-help-footer" class="btn-primary px-5 py-1.5 text-xs">Got it, thanks!</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.28"></script>
+  <script type="module" src="app.js?v=1.0.29"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

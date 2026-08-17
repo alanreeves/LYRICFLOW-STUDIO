@@ -480,13 +480,12 @@ export class CanvasRenderer {
       .replace(/\[slide\]\s*/gi, '')
       .replace(/\[(?:video|vid)(?:\s*[:=]\s*|\s+)[^\]]+\]\s*/gi, '')
       .replace(/\[(?:video|vid)\]\s*/gi, '')
+      .replace(/\[Verse(?:\s*\d+[\w]*)?\]\s*/gi, '')
       .split('\n')
       .map(line => {
         return line
-          // Strip punctuation marks: commas, periods, exclamations, questions, colons, semicolons, quotes, dashes, brackets, symbols
-          .replace(/[.,\/#!$%\^&\*;:{}=\_`~()?"“”«»–—…\[\]]/g, '')
-          // Strip leading/trailing/isolated apostrophes and quotes while preserving contractions (e.g. don't)
-          .replace(/(^|\s)['’]|['’](\s|$)/g, '$1$2')
+          // Strip ONLY commas, periods, colons, and semi-colons
+          .replace(/[,.:;]/g, '')
           .replace(/[ \t]+/g, ' ')
           .trim();
       })

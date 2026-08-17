@@ -7,7 +7,7 @@ import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 
-export const APP_VERSION = '1.0.28';
+export const APP_VERSION = '1.0.29';
 
 class App {
   constructor() {
@@ -38,6 +38,10 @@ class App {
       this._updateSlideTelemetryUI();
     };
 
+    // Lyrics File Source Tracking
+    this.lyricsFileHandle = null;
+    this.lyricsFileName = 'lyrics.txt';
+
     // Studio State
     this.activeCueIndex = -1;
     this.isStudioRecording = false;
@@ -58,6 +62,7 @@ class App {
     this._setupProjectPersistenceControls();
     this._setupPwaInstall();
     this._setupSettingsMenu();
+    this._setupHelpModal();
     this._setupAudioReactiveModal();
     this._setupServiceWorker();
     this._checkAppVersionUpdate();
@@ -461,12 +466,13 @@ class App {
     lyricsInput?.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
+        this.lyricsFileName = file.name || 'lyrics.txt';
         const reader = new FileReader();
         reader.onload = (ev) => {
           const text = ev.target.result;
           this.lyrics.setRawText(text);
           const rawInput = document.getElementById('raw-lyrics-input');
-          if (rawInput) rawInput.value = text;
+          if (rawInput) rawInput.value = this.lyrics.rawText;
           this._updateLyricsSummary();
           this.showToast(`Loaded lyrics (${this.lyrics.cues.length} cues)`, 'success');
         };
@@ -682,6 +688,10 @@ class App {
       });
     });
 
+    document.getElementById('btn-save-lyrics-file')?.addEventListener('click', () => {
+      this.saveLyricsToFile();
+    });
+
     document.getElementById('btn-format-trim')?.addEventListener('click', () => {
       this.lyrics.trimAll();
       if (rawInput) rawInput.value = this.lyrics.rawText;
@@ -697,8 +707,72 @@ class App {
     });
   }
 
+  async saveLyricsToFile() {
+    const rawText = this.lyrics.rawText || '';
+    if (!rawText.trim()) {
+      this.showToast('No lyrics to save yet. Add or edit lyrics first!', 'warning');
+      return;
+    }
+
+    const defaultName = this.lyricsFileName || 'lyrics.txt';
+
+    // 1. Direct write to existing file handle if opened via File System Access API
+    if (this.lyricsFileHandle) {
+      try {
+        const writable = await this.lyricsFileHandle.createWritable();
+        await writable.write(rawText);
+        await writable.close();
+        this.showToast(`Saved lyrics back to ${this.lyricsFileHandle.name}!`, 'success', 3000);
+        return;
+      } catch (err) {
+        console.warn('Direct file handle write fallback:', err);
+      }
+    }
+
+    // 2. Modern Save File Picker
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultName,
+          types: [{
+            description: 'Lyrics Text File',
+            accept: { 'text/plain': ['.txt', '.lrc', '.text'] }
+          }]
+        });
+        this.lyricsFileHandle = handle;
+        this.lyricsFileName = handle.name;
+        const writable = await handle.createWritable();
+        await writable.write(rawText);
+        await writable.close();
+        this.showToast(`Saved lyrics to ${handle.name}!`, 'success', 3000);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled
+        console.warn('showSaveFilePicker fallback:', err);
+      }
+    }
+
+    // 3. Standard browser download fallback
+    try {
+      const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = defaultName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast(`Downloaded ${defaultName} to disk!`, 'success', 3000);
+    } catch (e) {
+      console.error('Save lyrics error:', e);
+      this.showToast('Failed to save lyrics file', 'error');
+    }
+  }
+
   _updateCueListUI() {
     const container = document.getElementById('cue-chunks-container');
+    const rawInput = document.getElementById('raw-lyrics-input');
     if (!container) return;
 
     if (this.lyrics.cues.length === 0) {
@@ -734,10 +808,14 @@ class App {
       const textarea = card.querySelector('.cue-edit-textarea');
       textarea.addEventListener('input', (e) => {
         this.lyrics.updateCueText(idx, e.target.value);
+        if (rawInput) rawInput.value = this.lyrics.rawText;
+        const charCount = document.getElementById('editor-char-count');
+        if (charCount) charCount.textContent = `${this.lyrics.rawText.length} characters, ${this.lyrics.rawText.split('\n').length} lines`;
       });
 
       card.querySelector('.btn-delete-cue')?.addEventListener('click', () => {
         this.lyrics.deleteCue(idx);
+        if (rawInput) rawInput.value = this.lyrics.rawText;
         this._updateCueListUI();
         this._updateLyricsSummary();
       });
@@ -2677,12 +2755,66 @@ class App {
   }
 
   // ==========================================
+  // 12. COMPREHENSIVE HELP GUIDE MODAL
+  // ==========================================
+  _setupHelpModal() {
+    const modal = document.getElementById('help-modal');
+    const openBtn = document.getElementById('btn-open-help');
+    const closeBtn = document.getElementById('btn-close-help');
+    const footerBtn = document.getElementById('btn-close-help-footer');
+
+    const openHelp = () => {
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+      });
+    };
+
+    const closeHelp = () => {
+      if (!modal) return;
+      modal.classList.add('opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 200);
+    };
+
+    openBtn?.addEventListener('click', openHelp);
+    closeBtn?.addEventListener('click', closeHelp);
+    footerBtn?.addEventListener('click', closeHelp);
+
+    modal?.querySelector('.app-dialog-backdrop')?.addEventListener('click', closeHelp);
+
+    // Help tab switching
+    document.querySelectorAll('.help-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        
+        document.querySelectorAll('.help-tab-btn').forEach(b => {
+          b.classList.remove('active', 'bg-brand-600', 'text-white');
+          b.classList.add('text-slate-400');
+        });
+        btn.classList.add('active', 'bg-brand-600', 'text-white');
+        btn.classList.remove('text-slate-400');
+
+        document.querySelectorAll('.help-tab-content').forEach(content => {
+          content.classList.add('hidden');
+        });
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) {
+          targetContent.classList.remove('hidden');
+        }
+      });
+    });
+  }
+
+  // ==========================================
   // 13. SERVICE WORKER REGISTRATION (PWA)
   // ==========================================
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.28').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.29').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
