@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.38';
+export const APP_VERSION = '1.0.39';
 
 class App {
   constructor() {
@@ -3220,7 +3220,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.38').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.39').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
