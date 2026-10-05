@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.39';
+export const APP_VERSION = '1.0.40';
 
 class App {
   constructor() {
@@ -2208,6 +2208,11 @@ class App {
     const executeSearch = async (page = 1) => {
       const query = (searchInput?.value || '').trim();
 
+      if (!query) {
+        this.showToast('Please highlight lyrics on the left or type a search keyword', 'info', 2500);
+        return;
+      }
+
       if (!this.pixabay.hasApiKey()) {
         if (emptyState) emptyState.classList.remove('hidden');
         if (emptyTitle) emptyTitle.textContent = 'API Key Required';
@@ -2534,21 +2539,13 @@ class App {
       modal.classList.remove('hidden');
       requestAnimationFrame(() => modal.classList.remove('opacity-0'));
 
-      // If search input is empty, pick first theme keyword
-      if (!searchInput?.value.trim()) {
-        const audioName = this.audio?.audioFile?.name || '';
-        const keywords = this.pixabay.extractSongKeywords(audioName, this.lyrics?.rawText || '');
-        if (keywords.length > 0) {
-          searchInput.value = keywords[0];
-          clearSearchBtn?.classList.remove('hidden');
-        }
-      }
-
-      // If user has key and hasn't searched yet, auto-run search
-      if (this.pixabay.hasApiKey() && resultsGrid?.children.length === 0) {
-        executeSearch(1);
-      } else if (!this.pixabay.hasApiKey()) {
-        executeSearch(1);
+      // If no search has been performed yet, show the ready empty state
+      if (!resultsGrid || resultsGrid.children.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (emptyTitle) emptyTitle.textContent = 'Ready to Search Pixabay';
+        if (emptyDesc) emptyDesc.textContent = 'Select text from the lyrics on the left or type keywords above to discover visuals.';
+        if (pagination) pagination.classList.add('hidden');
+        if (resultsCountLabel) resultsCountLabel.textContent = '';
       }
     };
 
@@ -3220,7 +3217,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.39').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.40').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
