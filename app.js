@@ -6,8 +6,9 @@ import { MediaPool, ABSTRACT_PALETTES, ABSTRACT_STYLES } from './js/mediaPool.js
 import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
+import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.34';
+export const APP_VERSION = '1.0.35';
 
 class App {
   constructor() {
@@ -24,6 +25,7 @@ class App {
     this.audio = new AudioManager();
     this.mediaPool = new MediaPool();
     this.lyrics = new LyricsParser();
+    this.pixabay = new PixabayService();
 
     // Canvases
     this.masterCanvas = document.getElementById('master-canvas');
@@ -62,6 +64,8 @@ class App {
     this._setupProjectPersistenceControls();
     this._setupPwaInstall();
     this._setupSettingsMenu();
+    this._setupPixabaySettings();
+    this._setupPixabayModal();
     this._setupHelpModal();
     this._setupAudioReactiveModal();
     this._setupServiceWorker();
@@ -1963,6 +1967,526 @@ class App {
   }
 
   // ==========================================
+  // 10B. PIXABAY REST API SETTINGS
+  // ==========================================
+  _setupPixabaySettings() {
+    const keyInput = document.getElementById('settings-pixabay-key-input');
+    const toggleBtn = document.getElementById('btn-toggle-pixabay-key');
+    const saveBtn = document.getElementById('btn-save-pixabay-key');
+    const statusBadge = document.getElementById('pixabay-status-badge');
+    const keyHint = document.getElementById('pixabay-key-hint');
+
+    const updateStatusUI = (status, text) => {
+      if (!statusBadge) return;
+      if (status === 'connected') {
+        statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1';
+        statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Connected';
+        if (keyHint) keyHint.textContent = text || 'Pixabay API Key is connected and ready to search.';
+      } else if (status === 'invalid') {
+        statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-red-500/20 text-red-300 border border-red-500/40';
+        statusBadge.textContent = 'Invalid Key';
+        if (keyHint) keyHint.textContent = text || 'Verification failed. Please check your Pixabay API key.';
+      } else if (status === 'testing') {
+        statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/40';
+        statusBadge.textContent = 'Testing...';
+      } else {
+        statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700';
+        statusBadge.textContent = 'Not Configured';
+        if (keyHint) keyHint.textContent = 'Saved in browser local storage.';
+      }
+    };
+
+    // Load initial key from localStorage
+    const savedKey = this.pixabay.getApiKey();
+    if (keyInput) keyInput.value = savedKey;
+    if (savedKey) {
+      updateStatusUI('connected', 'Key loaded from browser storage.');
+    } else {
+      updateStatusUI('empty');
+    }
+
+    // Toggle show/hide password
+    toggleBtn?.addEventListener('click', () => {
+      if (!keyInput) return;
+      const isPassword = keyInput.type === 'password';
+      keyInput.type = isPassword ? 'text' : 'password';
+      toggleBtn.innerHTML = isPassword ? '<i data-lucide="eye-off" class="w-3.5 h-3.5"></i>' : '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    });
+
+    // Save & Test Key
+    saveBtn?.addEventListener('click', async () => {
+      const val = keyInput?.value?.trim() || '';
+      if (!val) {
+        this.pixabay.saveApiKey('');
+        updateStatusUI('empty');
+        this.showToast('Pixabay API Key cleared', 'info');
+        return;
+      }
+
+      updateStatusUI('testing');
+      saveBtn.disabled = true;
+      try {
+        const testRes = await this.pixabay.testApiKey(val);
+        if (testRes.success) {
+          this.pixabay.saveApiKey(val);
+          updateStatusUI('connected', `Verified! (${testRes.totalHits.toLocaleString()} results accessible)`);
+          this.showToast('✨ Pixabay API Key verified & saved!', 'success');
+        } else {
+          updateStatusUI('invalid', testRes.error);
+          this.showToast(`Pixabay test failed: ${testRes.error}`, 'error');
+        }
+      } catch (err) {
+        updateStatusUI('invalid', err.message);
+        this.showToast(`Error testing key: ${err.message}`, 'error');
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+  }
+
+  // ==========================================
+  // 10C. PIXABAY MEDIA BROWSER MODAL
+  // ==========================================
+  _setupPixabayModal() {
+    const modal = document.getElementById('pixabay-modal');
+    const openBtn1 = document.getElementById('btn-open-pixabay-modal');
+    const openBtn2 = document.getElementById('btn-quick-pixabay');
+    const closeBtn = document.getElementById('btn-close-pixabay-modal');
+    const closeFooterBtn = document.getElementById('btn-close-pixabay-modal-footer');
+    const backdrop = document.getElementById('pixabay-backdrop');
+
+    const searchForm = document.getElementById('pixabay-search-form');
+    const searchInput = document.getElementById('pixabay-search-input');
+    const clearSearchBtn = document.getElementById('btn-clear-pixabay-search');
+    const themeChips = document.getElementById('pixabay-theme-chips');
+
+    const btnTypeImages = document.getElementById('pixabay-type-images');
+    const btnTypeVideos = document.getElementById('pixabay-type-videos');
+    const orientationSelect = document.getElementById('pixabay-filter-orientation');
+    const categorySelect = document.getElementById('pixabay-filter-category');
+    const editorsChoiceCheckbox = document.getElementById('pixabay-filter-editors-choice');
+
+    const resultsGrid = document.getElementById('pixabay-results-grid');
+    const loadingSpinner = document.getElementById('pixabay-loading-spinner');
+    const emptyState = document.getElementById('pixabay-empty-state');
+    const emptyTitle = document.getElementById('pixabay-empty-title');
+    const emptyDesc = document.getElementById('pixabay-empty-desc');
+
+    const resultsCountLabel = document.getElementById('pixabay-results-count-label');
+    const pagination = document.getElementById('pixabay-pagination');
+    const prevPageBtn = document.getElementById('btn-pixabay-prev-page');
+    const nextPageBtn = document.getElementById('btn-pixabay-next-page');
+    const pageInfo = document.getElementById('pixabay-page-info');
+
+    const addSelectedSlideshowBtn = document.getElementById('btn-pixabay-add-selected-slideshow');
+    const selectedCountLabel = document.getElementById('pixabay-selected-count-label');
+
+    let mediaType = 'images'; // 'images' or 'videos'
+    let currentPage = 1;
+    let totalHits = 0;
+    const perPage = 24;
+    const selectedImages = new Map(); // id -> hit
+
+    const updateSelectedSlideshowUI = () => {
+      if (!addSelectedSlideshowBtn) return;
+      const count = selectedImages.size;
+      if (count > 0 && mediaType === 'images') {
+        addSelectedSlideshowBtn.classList.remove('hidden');
+        if (selectedCountLabel) selectedCountLabel.textContent = `Add (${count}) to Slideshow`;
+      } else {
+        addSelectedSlideshowBtn.classList.add('hidden');
+      }
+    };
+
+    const updateMediaTypeUI = (type) => {
+      mediaType = type;
+      if (type === 'images') {
+        btnTypeImages?.classList.add('bg-brand-600', 'text-white');
+        btnTypeImages?.classList.remove('text-slate-400');
+        btnTypeVideos?.classList.remove('bg-brand-600', 'text-white');
+        btnTypeVideos?.classList.add('text-slate-400');
+      } else {
+        btnTypeVideos?.classList.add('bg-brand-600', 'text-white');
+        btnTypeVideos?.classList.remove('text-slate-400');
+        btnTypeImages?.classList.remove('bg-brand-600', 'text-white');
+        btnTypeImages?.classList.add('text-slate-400');
+      }
+      selectedImages.clear();
+      updateSelectedSlideshowUI();
+    };
+
+    btnTypeImages?.addEventListener('click', () => {
+      updateMediaTypeUI('images');
+      executeSearch(1);
+    });
+
+    btnTypeVideos?.addEventListener('click', () => {
+      updateMediaTypeUI('videos');
+      executeSearch(1);
+    });
+
+    orientationSelect?.addEventListener('change', () => executeSearch(1));
+    categorySelect?.addEventListener('change', () => executeSearch(1));
+    editorsChoiceCheckbox?.addEventListener('change', () => executeSearch(1));
+
+    // Clear search
+    clearSearchBtn?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      searchInput?.focus();
+    });
+
+    searchInput?.addEventListener('input', () => {
+      if (clearSearchBtn) {
+        clearSearchBtn.classList.toggle('hidden', !searchInput.value);
+      }
+    });
+
+    // Populate dynamic song themes
+    const populateSongThemes = () => {
+      if (!themeChips) return;
+      themeChips.innerHTML = '';
+      const audioFileName = this.audio?.audioFile?.name || '';
+      const lyricsText = this.lyrics?.rawText || '';
+      const keywords = this.pixabay.extractSongKeywords(audioFileName, lyricsText);
+
+      keywords.forEach((kw) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'px-2 py-0.5 rounded-full bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-slate-300 hover:text-white border border-slate-700 transition cursor-pointer text-[11px] font-medium';
+        chip.textContent = kw;
+        chip.addEventListener('click', () => {
+          if (searchInput) searchInput.value = kw;
+          clearSearchBtn?.classList.remove('hidden');
+          executeSearch(1);
+        });
+        themeChips.appendChild(chip);
+      });
+    };
+
+    // Auto-match project aspect ratio to orientation filter
+    const syncOrientationWithAspectRatio = () => {
+      if (!orientationSelect) return;
+      const ratio = this.renderer?.aspectRatio || '16-9';
+      if (ratio === '9-16') {
+        orientationSelect.value = 'vertical';
+      } else {
+        orientationSelect.value = 'horizontal';
+      }
+    };
+
+    // Execute Pixabay API search
+    const executeSearch = async (page = 1) => {
+      const query = (searchInput?.value || '').trim();
+
+      if (!this.pixabay.hasApiKey()) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (emptyTitle) emptyTitle.textContent = 'API Key Required';
+        if (emptyDesc) emptyDesc.innerHTML = 'Please enter your free Pixabay API Key in <a href="#" id="pixabay-open-settings-link" class="text-brand-400 underline font-semibold">Settings</a> to start searching.';
+        if (resultsGrid) resultsGrid.innerHTML = '';
+        if (pagination) pagination.classList.add('hidden');
+        if (resultsCountLabel) resultsCountLabel.textContent = '';
+        document.getElementById('pixabay-open-settings-link')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          closeModal();
+          document.getElementById('btn-open-settings')?.click();
+        });
+        return;
+      }
+
+      currentPage = page;
+      loadingSpinner?.classList.remove('hidden');
+
+      try {
+        const results = await this.pixabay.search({
+          query,
+          mediaType,
+          orientation: orientationSelect?.value || 'horizontal',
+          category: categorySelect?.value || '',
+          page: currentPage,
+          perPage,
+          editorsChoice: editorsChoiceCheckbox?.checked || false
+        });
+
+        totalHits = results.totalHits;
+        renderResults(results);
+      } catch (err) {
+        console.error('Pixabay search error:', err);
+        if (resultsGrid) resultsGrid.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (emptyTitle) emptyTitle.textContent = 'Search Failed';
+        if (emptyDesc) emptyDesc.textContent = err.message || 'Could not load Pixabay results.';
+        if (pagination) pagination.classList.add('hidden');
+        if (resultsCountLabel) resultsCountLabel.textContent = '';
+        this.showToast(err.message, 'error');
+      } finally {
+        loadingSpinner?.classList.add('hidden');
+      }
+    };
+
+    // Render search results cards
+    const renderResults = (results) => {
+      if (!resultsGrid) return;
+      resultsGrid.innerHTML = '';
+
+      if (!results.hits || results.hits.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (emptyTitle) emptyTitle.textContent = 'No Results Found';
+        if (emptyDesc) emptyDesc.textContent = `No ${mediaType} matched "${searchInput?.value}". Try another keyword.`;
+        if (pagination) pagination.classList.add('hidden');
+        if (resultsCountLabel) resultsCountLabel.textContent = '0 results';
+        return;
+      }
+
+      if (emptyState) emptyState.classList.add('hidden');
+
+      // Update count & pagination
+      const totalPages = Math.ceil(Math.min(totalHits, 500) / perPage);
+      if (resultsCountLabel) {
+        resultsCountLabel.textContent = `${totalHits.toLocaleString()} results found`;
+      }
+      if (pagination) {
+        pagination.classList.toggle('hidden', totalPages <= 1);
+        pagination.classList.toggle('flex', totalPages > 1);
+        if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        if (prevPageBtn) prevPageBtn.disabled = currentPage <= 1;
+        if (nextPageBtn) nextPageBtn.disabled = currentPage >= totalPages;
+      }
+
+      // Populate cards
+      results.hits.forEach((hit) => {
+        const card = document.createElement('div');
+        card.className = 'group relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 hover:border-brand-500/60 transition shadow-md flex flex-col justify-between';
+
+        const isVideo = results.isVideo;
+        const thumbUrl = isVideo ? (hit.videos?.tiny?.thumbnail || hit.userImageURL) : hit.webformatURL;
+        const durationSec = isVideo ? hit.duration : null;
+
+        // Card Image & Overlays
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'relative aspect-video bg-slate-950 overflow-hidden';
+
+        const img = document.createElement('img');
+        img.src = thumbUrl;
+        img.alt = hit.tags || 'Pixabay media';
+        img.loading = 'lazy';
+        img.className = 'w-full h-full object-cover group-hover:scale-105 transition duration-300';
+        imgContainer.appendChild(img);
+
+        // Video Duration / Type Badge
+        if (isVideo) {
+          const badge = document.createElement('div');
+          badge.className = 'absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono text-cyan-300 font-bold flex items-center gap-1 border border-cyan-500/20';
+          badge.innerHTML = `<i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> ${durationSec}s`;
+          imgContainer.appendChild(badge);
+        }
+
+        // Multi-select Checkbox (Images only)
+        if (!isVideo) {
+          const selectWrap = document.createElement('label');
+          selectWrap.className = 'absolute top-2 left-2 w-6 h-6 rounded-lg bg-black/60 backdrop-blur-sm border border-slate-700 flex items-center justify-center cursor-pointer hover:border-brand-400 transition';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'rounded bg-slate-950 border-slate-700 text-brand-600 focus:ring-0 cursor-pointer w-3.5 h-3.5';
+          checkbox.checked = selectedImages.has(hit.id);
+          checkbox.addEventListener('change', (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) {
+              selectedImages.set(hit.id, hit);
+            } else {
+              selectedImages.delete(hit.id);
+            }
+            updateSelectedSlideshowUI();
+          });
+          selectWrap.appendChild(checkbox);
+          imgContainer.appendChild(selectWrap);
+        }
+
+        // Quick Hover Action Buttons Overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-center items-center gap-1.5';
+
+        // 1. Add to Pool Button
+        const addPoolBtn = document.createElement('button');
+        addPoolBtn.type = 'button';
+        addPoolBtn.className = 'w-full py-1 px-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer';
+        addPoolBtn.innerHTML = '<i data-lucide="plus" class="w-3 h-3"></i><span>Add to Pool</span>';
+        addPoolBtn.addEventListener('click', () => handleImportAsset(hit, isVideo, false));
+        overlay.appendChild(addPoolBtn);
+
+        // 2. Set Active Immediately
+        const setActiveBtn = document.createElement('button');
+        setActiveBtn.type = 'button';
+        setActiveBtn.className = 'w-full py-1 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer';
+        setActiveBtn.innerHTML = '<i data-lucide="zap" class="w-3 h-3"></i><span>Set Active</span>';
+        setActiveBtn.addEventListener('click', () => handleImportAsset(hit, isVideo, true));
+        overlay.appendChild(setActiveBtn);
+
+        // 3. Add to Slideshow (Images only)
+        if (!isVideo) {
+          const addSlideBtn = document.createElement('button');
+          addSlideBtn.type = 'button';
+          addSlideBtn.className = 'w-full py-1 px-2 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer';
+          addSlideBtn.innerHTML = '<i data-lucide="images" class="w-3 h-3"></i><span>To Slideshow</span>';
+          addSlideBtn.addEventListener('click', () => handleImportSingleSlide(hit));
+          overlay.appendChild(addSlideBtn);
+        }
+
+        imgContainer.appendChild(overlay);
+        card.appendChild(imgContainer);
+
+        // Meta footer
+        const meta = document.createElement('div');
+        meta.className = 'p-2 flex items-center justify-between text-[10px] text-slate-400 bg-slate-900/90';
+        meta.innerHTML = `
+          <span class="truncate max-w-[120px]" title="${hit.tags || ''}">${(hit.tags || '').split(',')[0]}</span>
+          <a href="${hit.pageURL}" target="_blank" rel="noopener noreferrer" class="hover:text-brand-400 transition" title="View on Pixabay: ${hit.user}">
+            by ${hit.user}
+          </a>
+        `;
+        card.appendChild(meta);
+
+        resultsGrid.appendChild(card);
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    // Asset Import: single image or video into MediaPool
+    const handleImportAsset = async (hit, isVideo, setActive = false) => {
+      this.showToast(`Downloading ${isVideo ? 'video' : 'image'} from Pixabay...`, 'info', 2000);
+      try {
+        const targetUrl = isVideo ? (hit.videos?.medium?.url || hit.videos?.small?.url || hit.videos?.large?.url) : hit.largeImageURL || hit.webformatURL;
+        const blob = await this.pixabay.fetchAsBlob(targetUrl);
+        const ext = isVideo ? 'mp4' : 'jpg';
+        const file = new File([blob], `pixabay_${hit.id}.${ext}`, { type: blob.type || (isVideo ? 'video/mp4' : 'image/jpeg') });
+
+        const asset = await this.mediaPool.addFile(file);
+        if (setActive) {
+          this.mediaPool.setSlideshowMode(false);
+          this.mediaPool.setActiveAsset(asset.id);
+        }
+        this._renderBgPool();
+        this._syncStylePreview();
+        this.showToast(`✨ Added Pixabay ${isVideo ? 'video' : 'image'} to background pool!`, 'success');
+      } catch (err) {
+        console.error('Import error:', err);
+        this.showToast(`Download failed: ${err.message}`, 'error');
+      }
+    };
+
+    // Asset Import: single image directly into slideshow
+    const handleImportSingleSlide = async (hit) => {
+      this.showToast('Adding slide to Image Slideshow...', 'info', 1500);
+      try {
+        const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
+        const file = new File([blob], `slide_${hit.id}.jpg`, { type: blob.type || 'image/jpeg' });
+        await this.mediaPool.addSlideshowFiles([file]);
+        this.mediaPool.setSlideshowMode(true);
+        this._updateSlideshowUI();
+        this._renderBgPool();
+        this._syncStylePreview();
+        this.showToast('✨ Added to Image Slideshow!', 'success');
+      } catch (err) {
+        this.showToast(`Failed to add slide: ${err.message}`, 'error');
+      }
+    };
+
+    // Asset Import: batch selected images into slideshow
+    addSelectedSlideshowBtn?.addEventListener('click', async () => {
+      const items = Array.from(selectedImages.values());
+      if (items.length === 0) return;
+
+      this.showToast(`Downloading ${items.length} images for slideshow...`, 'info', 3000);
+      try {
+        const files = [];
+        for (let i = 0; i < items.length; i++) {
+          const hit = items[i];
+          const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
+          const file = new File([blob], `slide_${String(i + 1).padStart(2, '0')}_${hit.id}.jpg`, { type: blob.type || 'image/jpeg' });
+          files.push(file);
+        }
+
+        await this.mediaPool.addSlideshowFiles(files);
+        this.mediaPool.setSlideshowMode(true);
+        this._updateSlideshowUI();
+        this._renderBgPool();
+        this._syncStylePreview();
+
+        selectedImages.clear();
+        updateSelectedSlideshowUI();
+        closeModal();
+        this.showToast(`🎉 Imported ${files.length} slides from Pixabay! Slideshow is active.`, 'success', 3500);
+      } catch (err) {
+        console.error('Batch import error:', err);
+        this.showToast(`Batch import failed: ${err.message}`, 'error');
+      }
+    });
+
+    // Pagination handlers
+    prevPageBtn?.addEventListener('click', () => {
+      if (currentPage > 1) executeSearch(currentPage - 1);
+    });
+
+    nextPageBtn?.addEventListener('click', () => {
+      executeSearch(currentPage + 1);
+    });
+
+    // Form submit
+    searchForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      executeSearch(1);
+    });
+
+    // Open Modal
+    const openModal = () => {
+      if (!modal) return;
+      populateSongThemes();
+      syncOrientationWithAspectRatio();
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => modal.classList.remove('opacity-0'));
+
+      // If search input is empty, pick first theme keyword
+      if (!searchInput?.value.trim()) {
+        const audioName = this.audio?.audioFile?.name || '';
+        const keywords = this.pixabay.extractSongKeywords(audioName, this.lyrics?.rawText || '');
+        if (keywords.length > 0) {
+          searchInput.value = keywords[0];
+          clearSearchBtn?.classList.remove('hidden');
+        }
+      }
+
+      // If user has key and hasn't searched yet, auto-run search
+      if (this.pixabay.hasApiKey() && resultsGrid?.children.length === 0) {
+        executeSearch(1);
+      } else if (!this.pixabay.hasApiKey()) {
+        executeSearch(1);
+      }
+    };
+
+    // Close Modal
+    const closeModal = () => {
+      if (!modal) return;
+      modal.classList.add('opacity-0');
+      setTimeout(() => modal.classList.add('hidden'), 200);
+    };
+
+    openBtn1?.addEventListener('click', openModal);
+    openBtn2?.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    closeFooterBtn?.addEventListener('click', closeModal);
+    backdrop?.addEventListener('click', closeModal);
+
+    // Escape listener
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+  }
+
+  // ==========================================
   // 11. AUDIO REACTIVE VISUALS PICKER MODAL
   // ==========================================
   _setupAudioReactiveModal() {
@@ -2855,7 +3379,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.34').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.35').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
