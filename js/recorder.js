@@ -25,15 +25,14 @@ export class VideoRecorder {
   }
 
   static getSupportedMimeType() {
-    // Prioritize high-performance hardware-accelerated containers
+    // Prioritize high-performance hardware-accelerated containers that guarantee audio
     const types = [
-      'video/mp4;codecs=avc1,mp4a.40.2',
-      'video/mp4;codecs=avc1',
-      'video/mp4;codecs=h264,aac',
-      'video/mp4',
       'video/webm;codecs=vp9,opus',
       'video/webm;codecs=vp8,opus',
-      'video/webm'
+      'video/webm',
+      'video/mp4;codecs=avc1,opus',
+      'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/mp4'
     ];
 
     for (const type of types) {
@@ -56,7 +55,9 @@ export class VideoRecorder {
 
     if (this.combinedStream) {
       try {
-        this.combinedStream.getTracks().forEach(track => {
+        // Only stop video tracks created specifically for canvas capture!
+        // DO NOT stop audio tracks belonging to the persistent WebAudio graph!
+        this.combinedStream.getVideoTracks().forEach(track => {
           try { track.stop(); } catch (e) {}
         });
       } catch (e) {}
@@ -64,7 +65,7 @@ export class VideoRecorder {
     }
   }
 
-  startRecording() {
+  async startRecording() {
     if (this.isRecording) return;
 
     // 1. Release previous recordings & tracks to prevent memory thrashing
@@ -75,6 +76,11 @@ export class VideoRecorder {
     }
     this.recordedBlob = null;
     this._stopStreamTracks();
+
+    // Ensure audio context is initialized and ready
+    if (this.audioManager) {
+      await this.audioManager.initAudioContext();
+    }
 
     // 2. Capture 60 FPS stream from master canvas
     this.canvasStream = this.canvas.captureStream(60);
@@ -87,11 +93,15 @@ export class VideoRecorder {
     const audioTrack = this.audioManager.getAudioStreamTrack();
     if (audioTrack) {
       this.combinedStream.addTrack(audioTrack);
+      console.log('Recorder: audio track attached (label:', audioTrack.label, ', readyState:', audioTrack.readyState, ')');
+    } else {
+      console.warn('Recorder: NO audio track available from audioManager!');
     }
 
     const mimeType = VideoRecorder.getSupportedMimeType();
     const options = {
-      videoBitsPerSecond: 8000000 // 8 Mbps for pristine 1080p
+      videoBitsPerSecond: 8000000, // 8 Mbps for pristine 1080p
+      audioBitsPerSecond: 192000   // 192 kbps for crystal clear audio
     };
     if (mimeType) {
       options.mimeType = mimeType;
@@ -144,7 +154,7 @@ export class VideoRecorder {
       }
     }
 
-    // Stop active stream tracks immediately to release GPU video capture pipeline
+    // Stop active stream video tracks to release GPU video capture pipeline
     this._stopStreamTracks();
   }
 
@@ -169,7 +179,7 @@ export class VideoRecorder {
     const ext = isMp4 ? 'mp4' : 'webm';
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const filename = `lyrics-video-${timestamp}.${ext}`;
-    const formatName = isMp4 ? 'MP4 Video (H.264/AAC)' : 'WebM HD Video (Hardware Encoded)';
+    const formatName = isMp4 ? 'MP4 Video (H.264/Audio)' : 'WebM HD Video (VP9/Opus Audio)';
 
     const metadata = {
       blob: this.recordedBlob,

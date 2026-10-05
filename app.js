@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.42';
+export const APP_VERSION = '1.0.43';
 
 class App {
   constructor() {
@@ -1394,7 +1394,7 @@ class App {
     }
 
     // Recorder start
-    this.recorder.startRecording();
+    await this.recorder.startRecording();
 
     // UI Updates
     const recBtn = document.getElementById('btn-toggle-record');
@@ -1741,6 +1741,8 @@ class App {
     const statSize = document.getElementById('export-stat-size');
 
     if (videoPlayer) {
+      videoPlayer.muted = false;
+      videoPlayer.volume = 1.0;
       videoPlayer.src = metadata.url;
       try {
         videoPlayer.pause();
@@ -3240,7 +3242,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.42').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.43').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

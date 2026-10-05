@@ -5,7 +5,6 @@
 export class AudioManager {
   constructor() {
     this.audioElement = new Audio();
-    this.audioElement.crossOrigin = 'anonymous';
     this.audioElement.preload = 'auto';
 
     this.audioContext = null;
@@ -93,11 +92,18 @@ export class AudioManager {
       this.freqDataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
       this.timeDataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
 
-      // Connect source -> gain -> speakers & recording stream & analyser
+      // Connect source -> gain -> speakers & analyser
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.audioContext.destination);
-      this.gainNode.connect(this.destinationNode);
       this.gainNode.connect(this.analyserNode);
+
+      // Connect directly to recording stream destination
+      this.sourceNode.connect(this.destinationNode);
+      this.gainNode.connect(this.destinationNode);
+
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
 
       this.isInitialized = true;
     } catch (e) {
@@ -193,6 +199,7 @@ export class AudioManager {
       URL.revokeObjectURL(this.audioUrl);
     }
     this.audioUrl = URL.createObjectURL(file);
+    this.audioElement.removeAttribute('crossorigin');
     this.audioElement.src = this.audioUrl;
     
     return new Promise((resolve, reject) => {
@@ -213,6 +220,11 @@ export class AudioManager {
   async loadAudioFromUrl(url, name = 'demo-track.mp3') {
     this.file = null;
     this.audioUrl = url;
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      this.audioElement.crossOrigin = 'anonymous';
+    } else {
+      this.audioElement.removeAttribute('crossorigin');
+    }
     this.audioElement.src = url;
 
     return new Promise((resolve, reject) => {
@@ -248,10 +260,53 @@ export class AudioManager {
   }
 
   getAudioStreamTrack() {
+    // 1. Check if existing destinationNode has a live, non-ended audio track
     if (this.destinationNode && this.destinationNode.stream) {
       const tracks = this.destinationNode.stream.getAudioTracks();
-      if (tracks.length > 0) return tracks[0];
+      if (tracks.length > 0 && tracks[0].readyState === 'live') {
+        return tracks[0];
+      }
     }
+
+    // 2. Re-create destinationNode if audioContext and sourceNode are active
+    if (this.audioContext && this.sourceNode) {
+      try {
+        if (this.destinationNode) {
+          try { this.sourceNode.disconnect(this.destinationNode); } catch (e) {}
+          if (this.gainNode) {
+            try { this.gainNode.disconnect(this.destinationNode); } catch (e) {}
+          }
+        }
+        this.destinationNode = this.audioContext.createMediaStreamDestination();
+        this.sourceNode.connect(this.destinationNode);
+        if (this.gainNode) {
+          this.gainNode.connect(this.destinationNode);
+        }
+        const tracks = this.destinationNode.stream.getAudioTracks();
+        if (tracks.length > 0 && tracks[0].readyState === 'live') {
+          return tracks[0];
+        }
+      } catch (e) {
+        console.warn('Could not re-create WebAudio destinationNode:', e);
+      }
+    }
+
+    // 3. Fallback: direct captureStream on audioElement if available
+    if (this.audioElement) {
+      try {
+        const captureFn = this.audioElement.captureStream || this.audioElement.mozCaptureStream;
+        if (typeof captureFn === 'function') {
+          const directStream = captureFn.call(this.audioElement);
+          const tracks = directStream ? directStream.getAudioTracks() : [];
+          if (tracks.length > 0 && tracks[0].readyState === 'live') {
+            return tracks[0];
+          }
+        }
+      } catch (e) {
+        console.warn('Direct audioElement captureStream note:', e);
+      }
+    }
+
     return null;
   }
 
