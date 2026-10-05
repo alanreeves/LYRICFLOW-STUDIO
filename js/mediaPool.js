@@ -425,20 +425,14 @@ export class MediaPool {
   async loadDefaultBackgrounds() {
     this.clear();
 
-    // 1. Audio Reactive: Cyber Liquid Aurora (Cyber Neon)
-    this.addAudioReactiveBackground('Cyber Liquid Aurora', 'cyber_aurora', 'cyber_neon');
+    // 1. Procedural: Cyber Night Glow
+    this.addProceduralGradient('Deep Night Glow', ['#090d16', '#1e1b4b', '#312e81', '#0f172a']);
 
-    // 2. Audio Reactive: Fluid Waveform Ribbons (Oceanic Abyss)
-    this.addAudioReactiveBackground('Fluid Waveform Ribbons', 'waveform_ribbons', 'oceanic_abyss');
+    // 2. Procedural: Neon Aurora
+    this.addProceduralGradient('Neon Aurora Glow', ['#050510', '#4f46e5', '#ec4899', '#06b6d4']);
 
-    // 3. Audio Reactive: Ethereal Silk Streams (Synthwave Sunset)
-    this.addAudioReactiveBackground('Ethereal Silk Streams', 'ethereal_silk', 'synthwave');
-
-    // 4. Audio Reactive: Deep Ambient Nebula (Solar Flare)
-    this.addAudioReactiveBackground('Deep Ambient Nebula', 'plasma_nebula', 'solar_flare');
-
-    // 5. Audio Reactive: Harmonic Tidal Swells (Emerald Matrix)
-    this.addAudioReactiveBackground('Harmonic Tidal Swells', 'harmonic_tides', 'emerald_matrix');
+    // 3. Procedural: Sunset Amber
+    this.addProceduralGradient('Sunset Amber Flow', ['#110408', '#dc2626', '#f59e0b', '#7c2d12']);
 
     if (this.assets.length > 0) {
       this.setActiveAsset(this.assets[0].id);

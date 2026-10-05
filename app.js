@@ -2,13 +2,13 @@
  * LyricFlow Studio - Main Application Controller
  */
 import { AudioManager } from './js/audioManager.js';
-import { MediaPool, ABSTRACT_PALETTES, ABSTRACT_STYLES } from './js/mediaPool.js';
+import { MediaPool } from './js/mediaPool.js';
 import { LyricsParser } from './js/lyricsParser.js';
 import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.36';
+export const APP_VERSION = '1.0.37';
 
 class App {
   constructor() {
@@ -67,7 +67,6 @@ class App {
     this._setupPixabaySettings();
     this._setupPixabayModal();
     this._setupHelpModal();
-    this._setupAudioReactiveModal();
     this._setupServiceWorker();
     this._checkAppVersionUpdate();
 
@@ -528,11 +527,6 @@ class App {
       : this.mediaPool.assets;
 
     displayAssets.forEach((asset, idx) => {
-      const isAudioReactive = asset.type === 'audio_reactive';
-      const eqBadgePool = isAudioReactive ? '<span class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-pink-500/80 text-[8px] font-mono text-white font-bold">⚡ EQ</span>' : '';
-      const eqBadgeStrip = isAudioReactive ? '<span class="absolute bottom-0.5 right-0.5 px-1 py-0.5 rounded bg-pink-500/80 text-[7px] font-mono text-white font-bold">⚡ EQ</span>' : '';
-      const eqBadgeStudio = isAudioReactive ? '<span class="absolute top-0 right-0 px-1 rounded-bl bg-pink-500/80 text-[7px] font-mono text-white font-bold">⚡ EQ</span>' : '';
-
       // Step 1 Pool Card
       const item = document.createElement('div');
       const isCurrentActive = this.mediaPool.slideshowMode
@@ -546,7 +540,6 @@ class App {
           <span class="text-[10px] text-white font-medium truncate">${asset.name}</span>
         </div>
         <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-mono text-white font-bold">${this.mediaPool.slideshowMode ? 'S' + (idx + 1) : idx + 1}</span>
-        ${eqBadgePool}
       `;
       item.addEventListener('click', () => {
         if (this.mediaPool.slideshowMode) {
@@ -563,7 +556,7 @@ class App {
         const stripItem = document.createElement('button');
         stripItem.type = 'button';
         stripItem.className = `w-14 h-9 rounded-lg overflow-hidden border-2 transition flex-shrink-0 relative ${isCurrentActive ? 'border-brand-500 ring-2 ring-brand-500/30' : 'border-slate-700 opacity-60 hover:opacity-100'}`;
-        stripItem.innerHTML = `<img src="${asset.thumbnail}" class="w-full h-full object-cover">${eqBadgeStrip}`;
+        stripItem.innerHTML = `<img src="${asset.thumbnail}" class="w-full h-full object-cover">`;
         stripItem.addEventListener('click', () => {
           if (this.mediaPool.slideshowMode) {
             this.mediaPool.setSlideIndex(idx);
@@ -585,7 +578,6 @@ class App {
           <div class="w-10 h-7 rounded overflow-hidden relative">
             <img src="${asset.thumbnail}" class="w-full h-full object-cover">
             <span class="absolute bottom-0 right-0 px-1 rounded-tl bg-black/80 text-[8px] font-mono text-white font-bold">${this.mediaPool.slideshowMode ? 'S' + (idx + 1) : idx + 1}</span>
-            ${eqBadgeStudio}
           </div>
           <span class="text-xs font-medium truncate max-w-[90px] pr-1">${asset.name}</span>
         `;
@@ -2056,10 +2048,16 @@ class App {
     const closeFooterBtn = document.getElementById('btn-close-pixabay-modal-footer');
     const backdrop = document.getElementById('pixabay-backdrop');
 
+    // Left Panel: Song Lyrics Container & Selection Facility
+    const lyricsContainer = document.getElementById('pixabay-lyrics-container');
+    const selectionBar = document.getElementById('pixabay-selection-bar');
+    const selectedTextPreview = document.getElementById('pixabay-selected-text-preview');
+    const searchSelectedBtn = document.getElementById('btn-search-selected-lyrics');
+
+    // Right Panel: Search Form & Filters
     const searchForm = document.getElementById('pixabay-search-form');
     const searchInput = document.getElementById('pixabay-search-input');
     const clearSearchBtn = document.getElementById('btn-clear-pixabay-search');
-    const themeChips = document.getElementById('pixabay-theme-chips');
 
     const btnTypeImages = document.getElementById('pixabay-type-images');
     const btnTypeVideos = document.getElementById('pixabay-type-videos');
@@ -2151,27 +2149,49 @@ class App {
       }
     });
 
-    // Populate dynamic song themes
-    const populateSongThemes = () => {
-      if (!themeChips) return;
-      themeChips.innerHTML = '';
-      const audioFileName = this.audio?.audioFile?.name || '';
-      const lyricsText = this.lyrics?.rawText || '';
-      const keywords = this.pixabay.extractSongKeywords(audioFileName, lyricsText);
-
-      keywords.forEach((kw) => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'px-2 py-0.5 rounded-full bg-slate-800 hover:bg-brand-500/20 hover:border-brand-500/40 text-slate-300 hover:text-white border border-slate-700 transition cursor-pointer text-[11px] font-medium';
-        chip.textContent = kw;
-        chip.addEventListener('click', () => {
-          if (searchInput) searchInput.value = kw;
-          clearSearchBtn?.classList.remove('hidden');
-          executeSearch(1);
-        });
-        themeChips.appendChild(chip);
-      });
+    // Populate Lyrics in the Left Container
+    const populateLyricsContainer = () => {
+      if (!lyricsContainer) return;
+      const lyricsText = (this.lyrics?.rawText || '').trim();
+      if (lyricsText) {
+        lyricsContainer.textContent = lyricsText;
+        lyricsContainer.classList.remove('italic', 'text-slate-500');
+      } else {
+        lyricsContainer.textContent = 'No lyrics loaded yet. Go to Step 2 to add or load your song lyrics, or type a search query on the right.';
+        lyricsContainer.classList.add('italic', 'text-slate-500');
+      }
+      if (selectionBar) {
+        selectionBar.classList.add('hidden');
+        selectionBar.classList.remove('flex');
+      }
     };
+
+    // Text Selection Event Handler for Lyrics
+    const handleLyricsSelection = () => {
+      const selection = window.getSelection();
+      const selectedText = selection ? selection.toString().trim() : '';
+      if (selectedText && selectedText.length > 0) {
+        if (searchInput) {
+          searchInput.value = selectedText;
+          clearSearchBtn?.classList.remove('hidden');
+        }
+        if (selectedTextPreview) {
+          selectedTextPreview.textContent = selectedText;
+        }
+        if (selectionBar) {
+          selectionBar.classList.remove('hidden');
+          selectionBar.classList.add('flex');
+        }
+      }
+    };
+
+    lyricsContainer?.addEventListener('mouseup', handleLyricsSelection);
+    lyricsContainer?.addEventListener('keyup', handleLyricsSelection);
+    lyricsContainer?.addEventListener('touchend', handleLyricsSelection);
+
+    searchSelectedBtn?.addEventListener('click', () => {
+      executeSearch(1);
+    });
 
     // Auto-match project aspect ratio to orientation filter
     const syncOrientationWithAspectRatio = () => {
@@ -2278,90 +2298,96 @@ class App {
         const img = document.createElement('img');
         img.src = thumbUrl;
         img.alt = hit.tags || 'Pixabay media';
+        img.className = 'w-full h-full object-cover transition duration-300 group-hover:scale-105';
         img.loading = 'lazy';
-        img.className = 'w-full h-full object-cover group-hover:scale-105 transition duration-300';
         imgContainer.appendChild(img);
 
-        // Video Duration / Type Badge
-        if (isVideo) {
-          const badge = document.createElement('div');
-          badge.className = 'absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono text-cyan-300 font-bold flex items-center gap-1 border border-cyan-500/20';
-          badge.innerHTML = `<i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> ${durationSec}s`;
-          imgContainer.appendChild(badge);
-        }
-
-        // Multi-select Checkbox (Images only)
+        // Selection checkbox for Images (for batch slideshow or download)
         if (!isVideo) {
-          const selectWrap = document.createElement('label');
-          selectWrap.className = 'absolute top-2 left-2 w-6 h-6 rounded-lg bg-black/60 backdrop-blur-sm border border-slate-700 flex items-center justify-center cursor-pointer hover:border-brand-400 transition';
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.className = 'rounded bg-slate-950 border-slate-700 text-brand-600 focus:ring-0 cursor-pointer w-3.5 h-3.5';
-          checkbox.checked = selectedImages.has(hit.id);
-          checkbox.addEventListener('change', (e) => {
+          const selectCheck = document.createElement('button');
+          selectCheck.type = 'button';
+          const isSelected = selectedImages.has(hit.id);
+          selectCheck.className = `absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border ${isSelected ? 'bg-brand-600 border-brand-400 text-white' : 'bg-slate-950/70 border-slate-600 text-transparent hover:border-white'}`;
+          selectCheck.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+          selectCheck.title = 'Select image for batch slideshow';
+          selectCheck.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (checkbox.checked) {
-              selectedImages.set(hit.id, hit);
-            } else {
+            if (selectedImages.has(hit.id)) {
               selectedImages.delete(hit.id);
+              selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-slate-950/70 border-slate-600 text-transparent hover:border-white';
+            } else {
+              selectedImages.set(hit.id, hit);
+              selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-brand-600 border-brand-400 text-white';
             }
             updateSelectedSlideshowUI();
           });
-          selectWrap.appendChild(checkbox);
-          imgContainer.appendChild(selectWrap);
+          imgContainer.appendChild(selectCheck);
         }
 
-        // Quick Hover Action Buttons Overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-center items-center gap-1.5';
-
-        // 1. Add to Pool Button
-        const addPoolBtn = document.createElement('button');
-        addPoolBtn.type = 'button';
-        addPoolBtn.className = 'w-full py-1 px-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer';
-        addPoolBtn.innerHTML = '<i data-lucide="plus" class="w-3 h-3"></i><span>Add to Pool</span>';
-        addPoolBtn.addEventListener('click', () => handleImportAsset(hit, isVideo, false));
-        overlay.appendChild(addPoolBtn);
-
-        // 2. Set Active Immediately
-        const setActiveBtn = document.createElement('button');
-        setActiveBtn.type = 'button';
-        setActiveBtn.className = 'w-full py-1 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer';
-        setActiveBtn.innerHTML = '<i data-lucide="zap" class="w-3 h-3"></i><span>Set Active</span>';
-        setActiveBtn.addEventListener('click', () => handleImportAsset(hit, isVideo, true));
-        overlay.appendChild(setActiveBtn);
-
-        // 3. Add to Slideshow (Images only)
-        if (!isVideo) {
-          const addSlideBtn = document.createElement('button');
-          addSlideBtn.type = 'button';
-          addSlideBtn.className = 'w-full py-1 px-2 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer';
-          addSlideBtn.innerHTML = '<i data-lucide="images" class="w-3 h-3"></i><span>To Slideshow</span>';
-          addSlideBtn.addEventListener('click', () => handleImportSingleSlide(hit));
-          overlay.appendChild(addSlideBtn);
+        // Video Duration Badge
+        if (isVideo && durationSec) {
+          const durationBadge = document.createElement('span');
+          durationBadge.className = 'absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white font-bold flex items-center gap-1';
+          durationBadge.innerHTML = `<i data-lucide="video" class="w-2.5 h-2.5 text-brand-400"></i> ${durationSec}s`;
+          imgContainer.appendChild(durationBadge);
         }
 
-        // 4. Save to Computer Folder directly
-        const saveDiskBtn = document.createElement('button');
-        saveDiskBtn.type = 'button';
-        saveDiskBtn.className = 'w-full py-1 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer border border-slate-700';
-        saveDiskBtn.innerHTML = '<i data-lucide="download" class="w-3 h-3 text-cyan-400"></i><span>Save to Computer</span>';
-        saveDiskBtn.addEventListener('click', () => handleDownloadAsset(hit, isVideo));
-        overlay.appendChild(saveDiskBtn);
-
-        imgContainer.appendChild(overlay);
         card.appendChild(imgContainer);
 
-        // Meta footer
-        const meta = document.createElement('div');
-        meta.className = 'p-2 flex items-center justify-between text-[10px] text-slate-400 bg-slate-900/90';
-        meta.innerHTML = `
-          <span class="truncate max-w-[120px]" title="${hit.tags || ''}">${(hit.tags || '').split(',')[0]}</span>
-          <a href="${hit.pageURL}" target="_blank" rel="noopener noreferrer" class="hover:text-brand-400 transition" title="View on Pixabay: ${hit.user}">
-            by ${hit.user}
-          </a>
-        `;
-        card.appendChild(meta);
+        // Info / Tag bar & Quick Add Action
+        const infoBar = document.createElement('div');
+        infoBar.className = 'p-2 flex items-center justify-between gap-1.5 bg-slate-900 border-t border-slate-800/80';
+
+        const tagsSpan = document.createElement('span');
+        tagsSpan.className = 'text-[10px] text-slate-400 truncate flex-1 font-medium';
+        tagsSpan.textContent = hit.tags ? hit.tags.split(',').slice(0, 2).join(', ') : (isVideo ? 'Video' : 'Photo');
+        tagsSpan.title = hit.tags;
+
+        // Action Buttons Container
+        const actionsBox = document.createElement('div');
+        actionsBox.className = 'flex items-center gap-1 shrink-0';
+
+        // 1. Download to Computer Disk Button
+        const diskBtn = document.createElement('button');
+        diskBtn.type = 'button';
+        diskBtn.className = 'px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[10px] font-medium transition cursor-pointer flex items-center gap-1';
+        diskBtn.title = 'Save to computer disk (keep in song folder)';
+        diskBtn.innerHTML = '<i data-lucide="download" class="w-3 h-3"></i>';
+        diskBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleDownloadAsset(hit, isVideo);
+        });
+        actionsBox.appendChild(diskBtn);
+
+        // 2. Add to Media Pool Button
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'px-2 py-1 rounded bg-brand-600/90 hover:bg-brand-500 text-white text-[10px] font-semibold transition cursor-pointer flex items-center gap-1';
+        addBtn.title = isVideo ? 'Add video to Media Pool' : 'Add image as active background';
+        addBtn.innerHTML = '<i data-lucide="plus" class="w-3 h-3"></i> Add';
+        addBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleAddAsset(hit, isVideo);
+        });
+        actionsBox.appendChild(addBtn);
+
+        // 3. For images: Add Single to Slideshow
+        if (!isVideo) {
+          const slideBtn = document.createElement('button');
+          slideBtn.type = 'button';
+          slideBtn.className = 'px-1.5 py-1 rounded bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] font-semibold transition cursor-pointer flex items-center gap-1';
+          slideBtn.title = 'Append directly to Image Slideshow';
+          slideBtn.innerHTML = '<i data-lucide="layers" class="w-3 h-3"></i>';
+          slideBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleAddSingleSlide(hit);
+          });
+          actionsBox.appendChild(slideBtn);
+        }
+
+        infoBar.appendChild(tagsSpan);
+        infoBar.appendChild(actionsBox);
+        card.appendChild(infoBar);
 
         resultsGrid.appendChild(card);
       });
@@ -2369,32 +2395,28 @@ class App {
       if (window.lucide) window.lucide.createIcons();
     };
 
-    // Asset Import: single image or video into MediaPool
-    const handleImportAsset = async (hit, isVideo, setActive = false) => {
-      this.showToast(`Downloading ${isVideo ? 'video' : 'image'} from Pixabay...`, 'info', 2000);
+    // Asset Import: single image or video into mediaPool assets
+    const handleAddAsset = async (hit, isVideo) => {
+      this.showToast(`Importing ${isVideo ? 'video' : 'image'} from Pixabay...`, 'info', 2000);
       try {
-        const targetUrl = isVideo ? (hit.videos?.medium?.url || hit.videos?.small?.url || hit.videos?.large?.url) : hit.largeImageURL || hit.webformatURL;
+        const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : hit.largeImageURL || hit.webformatURL;
         const blob = await this.pixabay.fetchAsBlob(targetUrl);
         const ext = isVideo ? 'mp4' : 'jpg';
         const file = new File([blob], `pixabay_${hit.id}.${ext}`, { type: blob.type || (isVideo ? 'video/mp4' : 'image/jpeg') });
-
         const asset = await this.mediaPool.addFile(file);
-        if (setActive) {
-          this.mediaPool.setSlideshowMode(false);
-          this.mediaPool.setActiveAsset(asset.id);
-        }
+        this.mediaPool.setActiveAsset(asset.id);
         this._renderBgPool();
         this._syncStylePreview();
-        this.showToast(`✨ Added Pixabay ${isVideo ? 'video' : 'image'} to background pool!`, 'success');
+        this.showToast(`✨ Added "${asset.name}" to Media Pool!`, 'success');
       } catch (err) {
         console.error('Import error:', err);
-        this.showToast(`Download failed: ${err.message}`, 'error');
+        this.showToast(`Failed to load media: ${err.message}`, 'error');
       }
     };
 
-    // Asset Import: single image directly into slideshow
-    const handleImportSingleSlide = async (hit) => {
-      this.showToast('Adding slide to Image Slideshow...', 'info', 1500);
+    // Asset Import: add single image to slideshow
+    const handleAddSingleSlide = async (hit) => {
+      this.showToast('Adding slide to slideshow...', 'info', 1500);
       try {
         const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
         const file = new File([blob], `slide_${hit.id}.jpg`, { type: blob.type || 'image/jpeg' });
@@ -2507,7 +2529,7 @@ class App {
     // Open Modal
     const openModal = () => {
       if (!modal) return;
-      populateSongThemes();
+      populateLyricsContainer();
       syncOrientationWithAspectRatio();
       modal.classList.remove('hidden');
       requestAnimationFrame(() => modal.classList.remove('opacity-0'));
@@ -2548,252 +2570,6 @@ class App {
       if (e.key === 'Escape' && !modal?.classList.contains('hidden')) {
         closeModal();
       }
-    });
-  }
-
-  // ==========================================
-  // 11. AUDIO REACTIVE VISUALS PICKER MODAL
-  // ==========================================
-  _setupAudioReactiveModal() {
-    const modal = document.getElementById('audio-reactive-modal');
-    const openBtn = document.getElementById('btn-open-audio-reactive-modal');
-    const closeBtn = document.getElementById('btn-close-audio-reactive-modal');
-    const closeFooterBtn = document.getElementById('btn-close-ar-modal-footer');
-    const backdrop = document.getElementById('audio-reactive-backdrop');
-    const addSingleBtn = document.getElementById('btn-ar-modal-add-single');
-    const addAllBtn = document.getElementById('btn-ar-modal-add-all-presets');
-    const previewCanvas = document.getElementById('audio-reactive-modal-preview-canvas');
-    const previewLabel = document.getElementById('ar-modal-preview-label');
-    const stylesGrid = document.getElementById('ar-styles-grid');
-    const palettesGrid = document.getElementById('ar-palettes-grid');
-
-    let selectedStyle = 'cyber_aurora';
-    let selectedPalette = 'cyber_neon';
-    let modalSpeed = this.mediaPool.getVideoSpeed() || 1.0;
-    let previewAnimFrame = null;
-    let previewRunning = false;
-
-    const speedSlider = document.getElementById('ar-modal-speed-slider');
-    const speedVal = document.getElementById('ar-modal-speed-val');
-    const speedPresetBtns = document.querySelectorAll('.btn-ar-speed-preset');
-
-    const previewCtx = previewCanvas?.getContext('2d');
-
-    const formatModalSpeed = (speed) => {
-      if (Math.abs(speed - 0.05) < 0.01) return '0.05x (Zen Ultra Slow)';
-      if (Math.abs(speed - 0.10) < 0.02) return '0.10x (Very Slow)';
-      if (Math.abs(speed - 0.25) < 0.02) return '0.25x (Slow)';
-      if (Math.abs(speed - 0.50) < 0.02) return '0.50x (Gentle)';
-      if (Math.abs(speed - 0.75) < 0.02) return '0.75x (Relaxed)';
-      if (Math.abs(speed - 1.00) < 0.02) return '1.00x (Normal)';
-      if (Math.abs(speed - 1.50) < 0.02) return '1.50x (Fast)';
-      if (Math.abs(speed - 2.00) < 0.02) return '2.00x (Rapid)';
-      return `${speed.toFixed(2)}x`;
-    };
-
-    const updateModalSpeedUI = (speed) => {
-      modalSpeed = Math.max(0.02, Math.min(2.0, parseFloat(speed) || 1.0));
-      if (speedSlider) speedSlider.value = modalSpeed;
-      if (speedVal) speedVal.textContent = formatModalSpeed(modalSpeed);
-
-      speedPresetBtns.forEach((btn) => {
-        const btnSpeed = parseFloat(btn.dataset.speed);
-        if (Math.abs(btnSpeed - modalSpeed) < 0.02) {
-          btn.classList.add('active', 'bg-brand-500/20', 'border-brand-500', 'text-white', 'font-bold');
-          btn.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-800');
-        } else {
-          btn.classList.remove('active', 'bg-brand-500/20', 'border-brand-500', 'text-white', 'font-bold');
-          btn.classList.add('bg-slate-900', 'text-slate-300', 'border-slate-800');
-        }
-      });
-    };
-
-    speedSlider?.addEventListener('input', (e) => {
-      updateModalSpeedUI(parseFloat(e.target.value));
-    });
-
-    speedPresetBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        updateModalSpeedUI(parseFloat(btn.dataset.speed));
-      });
-    });
-
-    const updatePreviewLabel = () => {
-      const sObj = ABSTRACT_STYLES.find(s => s.id === selectedStyle);
-      const pObj = ABSTRACT_PALETTES[selectedPalette];
-      if (previewLabel) {
-        previewLabel.textContent = `${sObj?.name || selectedStyle} • ${pObj?.name || selectedPalette} (${modalSpeed.toFixed(2)}x)`;
-      }
-    };
-
-    const renderModalControls = () => {
-      // 1. Populate Styles Grid
-      if (stylesGrid) {
-        stylesGrid.innerHTML = '';
-        ABSTRACT_STYLES.forEach(style => {
-          const isSelected = style.id === selectedStyle;
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = `p-3 rounded-xl border text-left transition flex flex-col justify-between gap-2 cursor-pointer ${
-            isSelected
-              ? 'bg-brand-500/20 border-brand-500 text-white ring-2 ring-brand-500/30'
-              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
-          }`;
-          btn.innerHTML = `
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold">${style.name}</span>
-              ${isSelected ? '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-brand-400"></i>' : ''}
-            </div>
-            <p class="text-[11px] text-slate-400 leading-tight">${style.desc}</p>
-          `;
-          btn.addEventListener('click', () => {
-            selectedStyle = style.id;
-            renderModalControls();
-            updatePreviewLabel();
-          });
-          stylesGrid.appendChild(btn);
-        });
-      }
-
-      // 2. Populate Palettes Grid
-      if (palettesGrid) {
-        palettesGrid.innerHTML = '';
-        Object.entries(ABSTRACT_PALETTES).forEach(([key, pal]) => {
-          const isSelected = key === selectedPalette;
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = `p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer ${
-            isSelected
-              ? 'bg-brand-500/20 border-brand-500 text-white ring-2 ring-brand-500/30'
-              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
-          }`;
-
-          const swatches = pal.colors.slice(1, 5).map(c => `<span class="w-3 h-3 rounded-full border border-black/40" style="background-color: ${c}"></span>`).join('');
-
-          btn.innerHTML = `
-            <div class="flex flex-col min-w-0">
-              <span class="text-xs font-medium truncate">${pal.name}</span>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              ${swatches}
-            </div>
-          `;
-          btn.addEventListener('click', () => {
-            selectedPalette = key;
-            renderModalControls();
-            updatePreviewLabel();
-          });
-          palettesGrid.appendChild(btn);
-        });
-      }
-
-      updateModalSpeedUI(modalSpeed);
-      if (window.lucide) window.lucide.createIcons();
-    };
-
-    // Modal preview animation loop
-    const startModalPreview = () => {
-      if (previewRunning) return;
-      previewRunning = true;
-
-      const loop = () => {
-        if (!previewRunning || !previewCtx || !previewCanvas) return;
-        const w = previewCanvas.width;
-        const h = previewCanvas.height;
-        const pal = ABSTRACT_PALETTES[selectedPalette]?.colors || ABSTRACT_PALETTES.cyber_neon.colors;
-        const audioTelem = this.audio?.getAudioTelemetry() || null;
-
-        // Dynamic motion packet
-        const telem = (audioTelem && audioTelem.isPlaying) ? audioTelem : {
-          isPlaying: true,
-          bass: 0.35 + Math.sin(Date.now() * 0.003) * 0.25,
-          mid: 0.30 + Math.cos(Date.now() * 0.004) * 0.2,
-          treble: 0.40 + Math.sin(Date.now() * 0.005) * 0.2,
-          volume: 0.35 + Math.sin(Date.now() * 0.003) * 0.2,
-          beat: Math.sin(Date.now() * 0.006) > 0.85 ? 0.8 : 0,
-          frequencyData: null,
-          timeDomainData: null
-        };
-
-        this.mediaPool.animTime += 0.015 * modalSpeed;
-        const mockAsset = { style: selectedStyle, colors: pal, speed: modalSpeed };
-        this.mediaPool._drawAudioReactive(previewCtx, w, h, mockAsset, telem);
-
-        previewAnimFrame = requestAnimationFrame(loop);
-      };
-
-      previewAnimFrame = requestAnimationFrame(loop);
-    };
-
-    const stopModalPreview = () => {
-      previewRunning = false;
-      if (previewAnimFrame) {
-        cancelAnimationFrame(previewAnimFrame);
-        previewAnimFrame = null;
-      }
-    };
-
-    const openModal = () => {
-      if (!modal) return;
-      modalSpeed = this.mediaPool.getVideoSpeed() || 1.0;
-      renderModalControls();
-      updatePreviewLabel();
-      modal.classList.remove('hidden');
-      requestAnimationFrame(() => modal.classList.remove('opacity-0'));
-      startModalPreview();
-    };
-
-    const closeModal = () => {
-      if (!modal) return;
-      stopModalPreview();
-      modal.classList.add('opacity-0');
-      setTimeout(() => modal.classList.add('hidden'), 200);
-    };
-
-    openBtn?.addEventListener('click', openModal);
-    closeBtn?.addEventListener('click', closeModal);
-    closeFooterBtn?.addEventListener('click', closeModal);
-    backdrop?.addEventListener('click', closeModal);
-
-    // Escape key listener for audio reactive modal
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) {
-        closeModal();
-      }
-    });
-
-    // Add single selected background
-    addSingleBtn?.addEventListener('click', () => {
-      const sObj = ABSTRACT_STYLES.find(s => s.id === selectedStyle);
-      const pObj = ABSTRACT_PALETTES[selectedPalette];
-      const name = `${sObj?.name || 'Audio Visuals'} (${pObj?.name || 'Neon'})`;
-      
-      this.mediaPool.setVideoSpeed(modalSpeed);
-      const asset = this.mediaPool.addAudioReactiveBackground(name, selectedStyle, selectedPalette, null, modalSpeed);
-      this.mediaPool.setActiveAsset(asset.id);
-      this._renderBgPool();
-      this._syncStylePreview();
-      this._syncStudioSpeedUI(modalSpeed);
-      this.showToast(`Added ${name} (${modalSpeed.toFixed(2)}x) to pool`, 'success');
-      closeModal();
-    });
-
-    // Add all 5 styles
-    addAllBtn?.addEventListener('click', () => {
-      let firstAdded = null;
-      this.mediaPool.setVideoSpeed(modalSpeed);
-      ABSTRACT_STYLES.forEach((style, idx) => {
-        const palKeys = Object.keys(ABSTRACT_PALETTES);
-        const palKey = palKeys[idx % palKeys.length];
-        const asset = this.mediaPool.addAudioReactiveBackground(style.name, style.id, palKey, null, modalSpeed);
-        if (!firstAdded) firstAdded = asset;
-      });
-      if (firstAdded) this.mediaPool.setActiveAsset(firstAdded.id);
-      this._renderBgPool();
-      this._syncStylePreview();
-      this._syncStudioSpeedUI(modalSpeed);
-      this.showToast(`Added all Audio-Reactive styles (${modalSpeed.toFixed(2)}x) to pool`, 'success');
-      closeModal();
     });
   }
 
@@ -3444,7 +3220,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.36').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.37').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
