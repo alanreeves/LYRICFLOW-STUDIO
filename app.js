@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.40';
+export const APP_VERSION = '1.0.41';
 
 class App {
   constructor() {
@@ -2042,8 +2042,7 @@ class App {
   // ==========================================
   _setupPixabayModal() {
     const modal = document.getElementById('pixabay-modal');
-    const openBtn1 = document.getElementById('btn-open-pixabay-modal');
-    const openBtn2 = document.getElementById('btn-quick-pixabay');
+    const openPixabayBtn = document.getElementById('btn-quick-pixabay');
     const closeBtn = document.getElementById('btn-close-pixabay-modal');
     const closeFooterBtn = document.getElementById('btn-close-pixabay-modal-footer');
     const backdrop = document.getElementById('pixabay-backdrop');
@@ -2054,10 +2053,14 @@ class App {
     const selectedTextPreview = document.getElementById('pixabay-selected-text-preview');
     const searchSelectedBtn = document.getElementById('btn-search-selected-lyrics');
 
-    // Right Panel: Search Form & Filters
+    // Right Panel: Search Form & Destination Folder
     const searchForm = document.getElementById('pixabay-search-form');
     const searchInput = document.getElementById('pixabay-search-input');
     const clearSearchBtn = document.getElementById('btn-clear-pixabay-search');
+
+    const folderBar = document.getElementById('pixabay-folder-bar');
+    const folderNameLabel = document.getElementById('pixabay-target-folder-name');
+    const chooseFolderBtn = document.getElementById('btn-pixabay-choose-folder');
 
     const btnTypeImages = document.getElementById('pixabay-type-images');
     const btnTypeVideos = document.getElementById('pixabay-type-videos');
@@ -2077,8 +2080,6 @@ class App {
     const nextPageBtn = document.getElementById('btn-pixabay-next-page');
     const pageInfo = document.getElementById('pixabay-page-info');
 
-    const addSelectedSlideshowBtn = document.getElementById('btn-pixabay-add-selected-slideshow');
-    const selectedCountLabel = document.getElementById('pixabay-selected-count-label');
     const downloadSelectedDiskBtn = document.getElementById('btn-pixabay-download-selected-disk');
     const downloadCountLabel = document.getElementById('pixabay-download-count-label');
 
@@ -2086,21 +2087,70 @@ class App {
     let currentPage = 1;
     let totalHits = 0;
     const perPage = 24;
-    const selectedImages = new Map(); // id -> hit
+    let targetDirHandle = null;
+    const selectedItems = new Map(); // id -> { hit, isVideo }
 
-    const updateSelectedSlideshowUI = () => {
-      const count = selectedImages.size;
-      if (count > 0 && mediaType === 'images') {
-        if (addSelectedSlideshowBtn) {
-          addSelectedSlideshowBtn.classList.remove('hidden');
-          if (selectedCountLabel) selectedCountLabel.textContent = `Add (${count}) to Slideshow`;
+    const updateFolderDisplay = () => {
+      if (!folderNameLabel) return;
+      if (targetDirHandle) {
+        folderNameLabel.textContent = `📁 ${targetDirHandle.name}`;
+        folderNameLabel.className = 'font-mono text-emerald-400 font-semibold truncate text-[11px]';
+        folderNameLabel.title = `Saving directly into folder "${targetDirHandle.name}"`;
+      } else {
+        folderNameLabel.textContent = 'Browser Downloads (Click "Choose Folder" to select song folder)';
+        folderNameLabel.className = 'font-mono text-slate-400 truncate text-[11px]';
+        folderNameLabel.title = 'Files will save via default download or chosen directory';
+      }
+    };
+
+    chooseFolderBtn?.addEventListener('click', async () => {
+      if (!window.showDirectoryPicker) {
+        this.showToast('Direct folder writing is not supported in this browser; files will save via browser download.', 'info', 3500);
+        return;
+      }
+      try {
+        targetDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        updateFolderDisplay();
+        this.showToast(`📁 Target folder set to: ${targetDirHandle.name}`, 'success');
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error selecting folder:', err);
+          this.showToast('Could not access folder: ' + err.message, 'error');
         }
+      }
+    });
+
+    const saveBlobToTarget = async (blob, filename) => {
+      if (targetDirHandle) {
+        try {
+          const fileHandle = await targetDirHandle.getFileHandle(filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return true;
+        } catch (err) {
+          console.warn('Directory handle write error, falling back to browser download:', err);
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return false;
+    };
+
+    const updateSelectedUI = () => {
+      const count = selectedItems.size;
+      if (count > 0) {
         if (downloadSelectedDiskBtn) {
           downloadSelectedDiskBtn.classList.remove('hidden');
-          if (downloadCountLabel) downloadCountLabel.textContent = `Save (${count}) to Computer`;
+          if (downloadCountLabel) downloadCountLabel.textContent = `Download (${count}) to Folder`;
         }
       } else {
-        if (addSelectedSlideshowBtn) addSelectedSlideshowBtn.classList.add('hidden');
         if (downloadSelectedDiskBtn) downloadSelectedDiskBtn.classList.add('hidden');
       }
     };
@@ -2118,8 +2168,8 @@ class App {
         btnTypeImages?.classList.remove('bg-brand-600', 'text-white');
         btnTypeImages?.classList.add('text-slate-400');
       }
-      selectedImages.clear();
-      updateSelectedSlideshowUI();
+      selectedItems.clear();
+      updateSelectedUI();
     };
 
     btnTypeImages?.addEventListener('click', () => {
@@ -2307,27 +2357,25 @@ class App {
         img.loading = 'lazy';
         imgContainer.appendChild(img);
 
-        // Selection checkbox for Images (for batch slideshow or download)
-        if (!isVideo) {
-          const selectCheck = document.createElement('button');
-          selectCheck.type = 'button';
-          const isSelected = selectedImages.has(hit.id);
-          selectCheck.className = `absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border ${isSelected ? 'bg-brand-600 border-brand-400 text-white' : 'bg-slate-950/70 border-slate-600 text-transparent hover:border-white'}`;
-          selectCheck.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
-          selectCheck.title = 'Select image for batch slideshow';
-          selectCheck.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedImages.has(hit.id)) {
-              selectedImages.delete(hit.id);
-              selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-slate-950/70 border-slate-600 text-transparent hover:border-white';
-            } else {
-              selectedImages.set(hit.id, hit);
-              selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-brand-600 border-brand-400 text-white';
-            }
-            updateSelectedSlideshowUI();
-          });
-          imgContainer.appendChild(selectCheck);
-        }
+        // Selection checkbox for batch folder download
+        const selectCheck = document.createElement('button');
+        selectCheck.type = 'button';
+        const isSelected = selectedItems.has(hit.id);
+        selectCheck.className = `absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border ${isSelected ? 'bg-brand-600 border-brand-400 text-white' : 'bg-slate-950/70 border-slate-600 text-transparent hover:border-white'}`;
+        selectCheck.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+        selectCheck.title = 'Select item for batch folder download';
+        selectCheck.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (selectedItems.has(hit.id)) {
+            selectedItems.delete(hit.id);
+            selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-slate-950/70 border-slate-600 text-transparent hover:border-white';
+          } else {
+            selectedItems.set(hit.id, { hit, isVideo });
+            selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-brand-600 border-brand-400 text-white';
+          }
+          updateSelectedUI();
+        });
+        imgContainer.appendChild(selectCheck);
 
         // Video Duration Badge
         if (isVideo && durationSec) {
@@ -2339,7 +2387,7 @@ class App {
 
         card.appendChild(imgContainer);
 
-        // Info / Tag bar & Quick Add Action
+        // Info / Tag bar & Single Download Action
         const infoBar = document.createElement('div');
         infoBar.className = 'p-2 flex items-center justify-between gap-1.5 bg-slate-900 border-t border-slate-800/80';
 
@@ -2348,47 +2396,20 @@ class App {
         tagsSpan.textContent = hit.tags ? hit.tags.split(',').slice(0, 2).join(', ') : (isVideo ? 'Video' : 'Photo');
         tagsSpan.title = hit.tags;
 
-        // Action Buttons Container
+        // Action: Single Download Button
         const actionsBox = document.createElement('div');
         actionsBox.className = 'flex items-center gap-1 shrink-0';
 
-        // 1. Download to Computer Disk Button
-        const diskBtn = document.createElement('button');
-        diskBtn.type = 'button';
-        diskBtn.className = 'px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[10px] font-medium transition cursor-pointer flex items-center gap-1';
-        diskBtn.title = 'Save to computer disk (keep in song folder)';
-        diskBtn.innerHTML = '<i data-lucide="download" class="w-3 h-3"></i>';
-        diskBtn.addEventListener('click', (e) => {
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
+        downloadBtn.className = 'btn-primary text-xs px-2.5 py-1 flex items-center gap-1 cursor-pointer';
+        downloadBtn.title = 'Download to folder';
+        downloadBtn.innerHTML = '<i data-lucide="download" class="w-3 h-3"></i> Download';
+        downloadBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           handleDownloadAsset(hit, isVideo);
         });
-        actionsBox.appendChild(diskBtn);
-
-        // 2. Add to Media Pool Button
-        const addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'px-2 py-1 rounded bg-brand-600/90 hover:bg-brand-500 text-white text-[10px] font-semibold transition cursor-pointer flex items-center gap-1';
-        addBtn.title = isVideo ? 'Add video to Media Pool' : 'Add image as active background';
-        addBtn.innerHTML = '<i data-lucide="plus" class="w-3 h-3"></i> Add';
-        addBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          handleAddAsset(hit, isVideo);
-        });
-        actionsBox.appendChild(addBtn);
-
-        // 3. For images: Add Single to Slideshow
-        if (!isVideo) {
-          const slideBtn = document.createElement('button');
-          slideBtn.type = 'button';
-          slideBtn.className = 'px-1.5 py-1 rounded bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] font-semibold transition cursor-pointer flex items-center gap-1';
-          slideBtn.title = 'Append directly to Image Slideshow';
-          slideBtn.innerHTML = '<i data-lucide="layers" class="w-3 h-3"></i>';
-          slideBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            handleAddSingleSlide(hit);
-          });
-          actionsBox.appendChild(slideBtn);
-        }
+        actionsBox.appendChild(downloadBtn);
 
         infoBar.appendChild(tagsSpan);
         infoBar.appendChild(actionsBox);
@@ -2400,116 +2421,66 @@ class App {
       if (window.lucide) window.lucide.createIcons();
     };
 
-    // Asset Import: single image or video into mediaPool assets
-    const handleAddAsset = async (hit, isVideo) => {
-      this.showToast(`Importing ${isVideo ? 'video' : 'image'} from Pixabay...`, 'info', 2000);
-      try {
-        const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : hit.largeImageURL || hit.webformatURL;
-        const blob = await this.pixabay.fetchAsBlob(targetUrl);
-        const ext = isVideo ? 'mp4' : 'jpg';
-        const file = new File([blob], `pixabay_${hit.id}.${ext}`, { type: blob.type || (isVideo ? 'video/mp4' : 'image/jpeg') });
-        const asset = await this.mediaPool.addFile(file);
-        this.mediaPool.setActiveAsset(asset.id);
-        this._renderBgPool();
-        this._syncStylePreview();
-        this.showToast(`✨ Added "${asset.name}" to Media Pool!`, 'success');
-      } catch (err) {
-        console.error('Import error:', err);
-        this.showToast(`Failed to load media: ${err.message}`, 'error');
-      }
-    };
-
-    // Asset Import: add single image to slideshow
-    const handleAddSingleSlide = async (hit) => {
-      this.showToast('Adding slide to slideshow...', 'info', 1500);
-      try {
-        const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
-        const file = new File([blob], `slide_${hit.id}.jpg`, { type: blob.type || 'image/jpeg' });
-        await this.mediaPool.addSlideshowFiles([file]);
-        this.mediaPool.setSlideshowMode(true);
-        this._updateSlideshowUI();
-        this._renderBgPool();
-        this._syncStylePreview();
-        this.showToast('✨ Added to Image Slideshow!', 'success');
-      } catch (err) {
-        this.showToast(`Failed to add slide: ${err.message}`, 'error');
-      }
-    };
-
-    // Download asset directly to user's computer disk
+    // Download asset directly to folder / disk
     const handleDownloadAsset = async (hit, isVideo) => {
-      this.showToast(`Downloading ${isVideo ? 'video' : 'image'} to your computer...`, 'info', 2000);
+      this.showToast(`Downloading ${isVideo ? 'video' : 'image'} to folder...`, 'info', 2000);
       try {
+        if (!targetDirHandle && window.showDirectoryPicker) {
+          try {
+            targetDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            updateFolderDisplay();
+          } catch (cancelErr) {
+            // User cancelled folder picker, will use fallback download
+          }
+        }
+
         const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : hit.largeImageURL || hit.webformatURL;
         const blob = await this.pixabay.fetchAsBlob(targetUrl);
         const ext = isVideo ? 'mp4' : 'jpg';
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `pixabay_${hit.id}.${ext}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        this.showToast(`✨ Saved pixabay_${hit.id}.${ext} to your computer! Move to your song folder anytime.`, 'success', 3500);
+        const filename = `pixabay_${isVideo ? 'video' : 'photo'}_${hit.id}.${ext}`;
+        const savedToFolder = await saveBlobToTarget(blob, filename);
+        if (savedToFolder && targetDirHandle) {
+          this.showToast(`✨ Saved ${filename} to ${targetDirHandle.name}!`, 'success', 3500);
+        } else {
+          this.showToast(`✨ Saved ${filename} to your computer!`, 'success', 3500);
+        }
       } catch (err) {
         console.error('Download error:', err);
         this.showToast(`Download failed: ${err.message}`, 'error');
       }
     };
 
-    // Asset Import: batch selected images into slideshow
-    addSelectedSlideshowBtn?.addEventListener('click', async () => {
-      const items = Array.from(selectedImages.values());
-      if (items.length === 0) return;
-
-      this.showToast(`Downloading ${items.length} images for slideshow...`, 'info', 3000);
-      try {
-        const files = [];
-        for (let i = 0; i < items.length; i++) {
-          const hit = items[i];
-          const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
-          const file = new File([blob], `slide_${String(i + 1).padStart(2, '0')}_${hit.id}.jpg`, { type: blob.type || 'image/jpeg' });
-          files.push(file);
-        }
-
-        await this.mediaPool.addSlideshowFiles(files);
-        this.mediaPool.setSlideshowMode(true);
-        this._updateSlideshowUI();
-        this._renderBgPool();
-        this._syncStylePreview();
-
-        selectedImages.clear();
-        updateSelectedSlideshowUI();
-        closeModal();
-        this.showToast(`🎉 Imported ${files.length} slides from Pixabay! Slideshow is active.`, 'success', 3500);
-      } catch (err) {
-        console.error('Batch import error:', err);
-        this.showToast(`Batch import failed: ${err.message}`, 'error');
-      }
-    });
-
-    // Batch download selected images directly to user's computer disk
+    // Batch download selected media directly to folder / disk
     downloadSelectedDiskBtn?.addEventListener('click', async () => {
-      const items = Array.from(selectedImages.values());
+      const items = Array.from(selectedItems.values());
       if (items.length === 0) return;
 
-      this.showToast(`Downloading ${items.length} images to your computer...`, 'info', 2500);
+      if (!targetDirHandle && window.showDirectoryPicker) {
+        try {
+          targetDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          updateFolderDisplay();
+        } catch (cancelErr) {
+          // User cancelled folder picker, will use fallback download
+        }
+      }
+
+      this.showToast(`Downloading ${items.length} items to folder...`, 'info', 2500);
       try {
+        let savedCount = 0;
         for (let i = 0; i < items.length; i++) {
-          const hit = items[i];
-          const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `slide_${String(i + 1).padStart(2, '0')}_pixabay_${hit.id}.jpg`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          const { hit, isVideo } = items[i];
+          const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : (hit.largeImageURL || hit.webformatURL);
+          const blob = await this.pixabay.fetchAsBlob(targetUrl);
+          const ext = isVideo ? 'mp4' : 'jpg';
+          const filename = `slide_${String(i + 1).padStart(2, '0')}_pixabay_${hit.id}.${ext}`;
+          await saveBlobToTarget(blob, filename);
+          savedCount++;
           await new Promise(r => setTimeout(r, 200));
         }
-        this.showToast(`🎉 Downloaded ${items.length} images! You can now place them in a folder and load with "Select Folder".`, 'success', 4000);
+        selectedItems.clear();
+        updateSelectedUI();
+        const dest = targetDirHandle ? targetDirHandle.name : 'your computer';
+        this.showToast(`🎉 Downloaded ${savedCount} files to ${dest}!`, 'success', 4000);
       } catch (err) {
         console.error('Batch download error:', err);
         this.showToast(`Batch download failed: ${err.message}`, 'error');
@@ -2536,6 +2507,7 @@ class App {
       if (!modal) return;
       populateLyricsContainer();
       syncOrientationWithAspectRatio();
+      updateFolderDisplay();
       modal.classList.remove('hidden');
       requestAnimationFrame(() => modal.classList.remove('opacity-0'));
 
@@ -2556,8 +2528,7 @@ class App {
       setTimeout(() => modal.classList.add('hidden'), 200);
     };
 
-    openBtn1?.addEventListener('click', openModal);
-    openBtn2?.addEventListener('click', openModal);
+    openPixabayBtn?.addEventListener('click', openModal);
     closeBtn?.addEventListener('click', closeModal);
     closeFooterBtn?.addEventListener('click', closeModal);
     backdrop?.addEventListener('click', closeModal);
@@ -3217,7 +3188,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.40').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.41').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });

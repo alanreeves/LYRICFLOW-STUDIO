@@ -52,7 +52,7 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css?v=1.0.40">
+  <link rel="stylesheet" href="style.css?v=1.0.41">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -66,7 +66,7 @@
         <div class="flex items-center">
           <span class="text-lg sm:text-xl font-display font-extrabold bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">LyricFlow Studio</span>
           <span class="ml-2 text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 hidden 2xl:inline-block">MP4 Generator</span>
-          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.40</span>
+          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.41</span>
         </div>
       </div>
 
@@ -258,7 +258,7 @@
               </div>
               <button type="button" id="btn-quick-pixabay" class="text-xs px-2.5 py-1.5 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 hover:border-pink-500/50 transition flex items-center gap-1 cursor-pointer shrink-0" title="Find photos & videos on Pixabay">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-pink-400"></i>
-                <span class="hidden sm:inline">Pixabay</span>
+                <span>Pixabay</span>
               </button>
             </div>
 
@@ -336,10 +336,6 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" id="btn-open-pixabay-modal" class="btn-primary text-xs flex items-center gap-1.5 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 border border-pink-400/30 shadow-lg shadow-pink-500/20">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i>
-            <span>Search Pixabay Media</span>
-          </button>
           <button type="button" id="btn-add-gradient-bg" class="btn-secondary text-xs flex items-center gap-1.5">
             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
             <span>Add Gradient BG</span>
@@ -1246,6 +1242,19 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
               </button>
             </form>
 
+            <!-- Destination Folder Bar -->
+            <div id="pixabay-folder-bar" class="flex items-center justify-between px-3 py-2 bg-slate-950/80 rounded-lg border border-slate-800 text-xs">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="folder" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="text-slate-400 shrink-0 font-medium">Download Folder:</span>
+                <span id="pixabay-target-folder-name" class="font-mono text-slate-300 truncate text-[11px]" title="Default browser downloads folder or chosen song folder">Browser Downloads (Click "Choose Folder" to select song folder)</span>
+              </div>
+              <button type="button" id="btn-pixabay-choose-folder" class="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1.5 shrink-0 hover:border-amber-400/40">
+                <i data-lucide="folder-open" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>Choose Folder</span>
+              </button>
+            </div>
+
             <!-- Filter Controls -->
             <div class="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-slate-800/80 text-xs">
               <!-- Media Type Toggle -->
@@ -1321,15 +1330,11 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
 
       <!-- Footer & Pagination -->
       <div class="pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 shrink-0">
-        <!-- Batch Slideshow Selection Action -->
+        <!-- Batch Download Selection Action -->
         <div class="flex items-center gap-2">
-          <button type="button" id="btn-pixabay-add-selected-slideshow" class="btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1.5 hidden" title="Package selected photos into active Image Slideshow in memory">
-            <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
-            <span id="pixabay-selected-count-label">Add (0) to Slideshow</span>
-          </button>
-          <button type="button" id="btn-pixabay-download-selected-disk" class="btn-secondary text-xs px-3.5 py-1.5 flex items-center gap-1.5 hidden" title="Download selected images to your computer disk to store in a song folder">
-            <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span id="pixabay-download-count-label">Save (0) to Computer</span>
+          <button type="button" id="btn-pixabay-download-selected-disk" class="btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1.5 hidden" title="Download selected media to your chosen folder">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-white"></i>
+            <span id="pixabay-download-count-label">Download (0) to Folder</span>
           </button>
           <span id="pixabay-results-count-label" class="text-[11px] text-slate-500"></span>
         </div>
@@ -1384,7 +1389,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
         <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed Version</span>
-            <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.40</span>
+            <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.41</span>
           </div>
           <div class="flex items-center justify-between text-xs text-slate-400">
             <span>Running Environment:</span>
@@ -1627,58 +1632,37 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
           <div class="p-3.5 rounded-xl bg-slate-900 border border-pink-500/30 space-y-3">
             <h4 class="text-sm font-bold text-pink-300 flex items-center gap-2">
               <i data-lucide="sparkles" class="w-4 h-4 text-pink-400"></i>
-              Pixabay Media Options & Song Background Workflows Explained
+              Pixabay Media Search & Song Folder Workflow
             </h4>
             <p class="text-slate-300 text-xs">
-              When searching Pixabay in LyricFlow Studio, each visual card gives you actions depending on how you want to use it:
+              Finding and downloading royalty-free backgrounds from Pixabay into your song folder is fast and simple:
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
               <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
                 <span class="font-bold text-brand-400 flex items-center gap-1">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add to Pool
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i> 1. Select Lyric Text
                 </span>
                 <p class="text-[11px] text-slate-400">
-                  Adds the video or image into your <strong>Background Bank (slots 1–9)</strong>. Use this for looping videos or background themes you want to switch between during the song using number keys <kbd class="kbd">1</kbd>–<kbd class="kbd">9</kbd>, key <kbd class="kbd">V</kbd> (next video), or lyric cue tags like <code>[video: filename]</code>.
+                  Highlight any lyric line or phrase in the left lyrics panel to instantly use it as your search keywords for matching photos or motion videos.
                 </p>
               </div>
 
               <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
-                <span class="font-bold text-pink-400 flex items-center gap-1">
-                  <i data-lucide="images" class="w-3.5 h-3.5"></i> To Slideshow
+                <span class="font-bold text-amber-400 flex items-center gap-1">
+                  <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> 2. Choose Download Folder
                 </span>
                 <p class="text-[11px] text-slate-400">
-                  Adds photos into an <strong>ordered slideshow sequence</strong> (Slide 1, Slide 2...). You can check multiple photos with checkboxes and click <em>"Add Selected to Slideshow"</em> to build your sequence for the entire song. Advances with <kbd class="kbd">Shift + Space</kbd> or <code>[slide]</code> tags.
+                  Click <em>"Choose Folder"</em> to pick a dedicated song folder on your computer disk where all downloaded images and videos will be saved directly.
                 </p>
               </div>
 
               <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
                 <span class="font-bold text-emerald-400 flex items-center gap-1">
-                  <i data-lucide="zap" class="w-3.5 h-3.5"></i> Set Active
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i> 3. Download & Load
                 </span>
                 <p class="text-[11px] text-slate-400">
-                  Immediately sets this image or video as the <strong>currently displayed background</strong> on your screen right now, so you can preview its look with your lyrics and fonts immediately.
+                  Click <em>"Download"</em> on any visual card (or check multiple items and click <em>"Download Selected to Folder"</em>). Then in Step 1, click <strong>"Select Folder"</strong> to load them all for your song!
                 </p>
-              </div>
-            </div>
-
-            <!-- Dedicated Folder Workflow -->
-            <div class="p-3 rounded-lg bg-brand-500/10 border border-brand-500/30 text-xs text-brand-200 space-y-2">
-              <strong class="text-white flex items-center gap-1.5 text-sm">
-                <i data-lucide="folder-check" class="w-4 h-4 text-emerald-400"></i>
-                Using a Dedicated Folder of Slides or Videos for the Whole Song
-              </strong>
-              <p class="text-slate-300 text-[11px]">
-                If your goal is to assemble a group of slides or videos into a separate folder and use those across the whole song, you have two great options:
-              </p>
-              <div class="space-y-1.5 text-slate-300 text-[11px] pl-1">
-                <div>
-                  <strong class="text-white">Option A — Save Files to a Folder on your Computer:</strong><br>
-                  Click the <em>"Save File"</em> button on any Pixabay card (or multi-select photos and click <em>"Save Selected to Computer"</em>). Save them into a dedicated folder on your disk (e.g. <code>C:\MySong\Backgrounds\</code>). Then in Step 1, click <strong>"Select Folder"</strong> (for Image Slideshows) or <strong>"Select Video Folder"</strong> (for Videos). LyricFlow Studio will import every file from that folder in natural numerical order for your whole song.
-                </div>
-                <div>
-                  <strong class="text-white">Option B — Direct In-App Slideshow (No Disk Folder Needed):</strong><br>
-                  Select multiple photos in the Pixabay browser using the checkboxes and click <em>"Add Selected to Slideshow"</em>. LyricFlow Studio will automatically organize them into an active in-memory slideshow for the entire song, ready to trigger with <kbd class="kbd">Shift + Space</kbd> or <code>[slide]</code> tags.
-                </div>
               </div>
             </div>
           </div>
@@ -1772,14 +1756,14 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
       </div>
 
       <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0">
-        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.40</span>
+        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.41</span>
         <button type="button" id="btn-close-help-footer" class="btn-primary px-5 py-1.5 text-xs">Got it, thanks!</button>
       </div>
     </div>
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.40"></script>
+  <script type="module" src="app.js?v=1.0.41"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {
