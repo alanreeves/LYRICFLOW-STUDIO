@@ -52,7 +52,7 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css?v=1.0.35">
+  <link rel="stylesheet" href="style.css?v=1.0.36">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased overflow-x-hidden">
 
@@ -66,7 +66,7 @@
         <div class="flex items-center">
           <span class="text-lg sm:text-xl font-display font-extrabold bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">LyricFlow Studio</span>
           <span class="ml-2 text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 hidden 2xl:inline-block">MP4 Generator</span>
-          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.35</span>
+          <span id="app-version-badge" class="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30" title="LyricFlow Studio Current Version">v1.0.36</span>
         </div>
       </div>
 
@@ -1384,9 +1384,13 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
       <div class="pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 shrink-0">
         <!-- Batch Slideshow Selection Action -->
         <div class="flex items-center gap-2">
-          <button type="button" id="btn-pixabay-add-selected-slideshow" class="btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1.5 hidden">
+          <button type="button" id="btn-pixabay-add-selected-slideshow" class="btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1.5 hidden" title="Package selected photos into active Image Slideshow in memory">
             <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
             <span id="pixabay-selected-count-label">Add (0) to Slideshow</span>
+          </button>
+          <button type="button" id="btn-pixabay-download-selected-disk" class="btn-secondary text-xs px-3.5 py-1.5 flex items-center gap-1.5 hidden" title="Download selected images to your computer disk to store in a song folder">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span id="pixabay-download-count-label">Save (0) to Computer</span>
           </button>
           <span id="pixabay-results-count-label" class="text-[11px] text-slate-500"></span>
         </div>
@@ -1438,7 +1442,7 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
       <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed Version</span>
-          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.35</span>
+          <span id="settings-version-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40">v1.0.36</span>
         </div>
         <div class="flex items-center justify-between text-xs text-slate-400">
           <span>Running Environment:</span>
@@ -1674,6 +1678,66 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
               <li>• <strong class="text-white">Audio Reactive Visuals:</strong> Choose from 5 live procedural styles (Cyber Liquid Aurora, Fluid Waveforms, Silk Streams, Ambient Nebula, Tidal Swells) with dynamic color palettes that pulse to your bass & rhythm.</li>
             </ul>
           </div>
+
+          <!-- Pixabay & Folder Backgrounds Guide -->
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-pink-500/30 space-y-3">
+            <h4 class="text-sm font-bold text-pink-300 flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4 text-pink-400"></i>
+              Pixabay Media Options & Song Background Workflows Explained
+            </h4>
+            <p class="text-slate-300 text-xs">
+              When searching Pixabay in LyricFlow Studio, each visual card gives you actions depending on how you want to use it:
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                <span class="font-bold text-brand-400 flex items-center gap-1">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add to Pool
+                </span>
+                <p class="text-[11px] text-slate-400">
+                  Adds the video or image into your <strong>Background Bank (slots 1–9)</strong>. Use this for looping videos or background themes you want to switch between during the song using number keys <kbd class="kbd">1</kbd>–<kbd class="kbd">9</kbd>, key <kbd class="kbd">V</kbd> (next video), or lyric cue tags like <code>[video: filename]</code>.
+                </p>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                <span class="font-bold text-pink-400 flex items-center gap-1">
+                  <i data-lucide="images" class="w-3.5 h-3.5"></i> To Slideshow
+                </span>
+                <p class="text-[11px] text-slate-400">
+                  Adds photos into an <strong>ordered slideshow sequence</strong> (Slide 1, Slide 2...). You can check multiple photos with checkboxes and click <em>"Add Selected to Slideshow"</em> to build your sequence for the entire song. Advances with <kbd class="kbd">Shift + Space</kbd> or <code>[slide]</code> tags.
+                </p>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                  <i data-lucide="zap" class="w-3.5 h-3.5"></i> Set Active
+                </span>
+                <p class="text-[11px] text-slate-400">
+                  Immediately sets this image or video as the <strong>currently displayed background</strong> on your screen right now, so you can preview its look with your lyrics and fonts immediately.
+                </p>
+              </div>
+            </div>
+
+            <!-- Dedicated Folder Workflow -->
+            <div class="p-3 rounded-lg bg-brand-500/10 border border-brand-500/30 text-xs text-brand-200 space-y-2">
+              <strong class="text-white flex items-center gap-1.5 text-sm">
+                <i data-lucide="folder-check" class="w-4 h-4 text-emerald-400"></i>
+                Using a Dedicated Folder of Slides or Videos for the Whole Song
+              </strong>
+              <p class="text-slate-300 text-[11px]">
+                If your goal is to assemble a group of slides or videos into a separate folder and use those across the whole song, you have two great options:
+              </p>
+              <div class="space-y-1.5 text-slate-300 text-[11px] pl-1">
+                <div>
+                  <strong class="text-white">Option A — Save Files to a Folder on your Computer:</strong><br>
+                  Click the <em>"Save File"</em> button on any Pixabay card (or multi-select photos and click <em>"Save Selected to Computer"</em>). Save them into a dedicated folder on your disk (e.g. <code>C:\MySong\Backgrounds\</code>). Then in Step 1, click <strong>"Select Folder"</strong> (for Image Slideshows) or <strong>"Select Video Folder"</strong> (for Videos). LyricFlow Studio will import every file from that folder in natural numerical order for your whole song.
+                </div>
+                <div>
+                  <strong class="text-white">Option B — Direct In-App Slideshow (No Disk Folder Needed):</strong><br>
+                  Select multiple photos in the Pixabay browser using the checkboxes and click <em>"Add Selected to Slideshow"</em>. LyricFlow Studio will automatically organize them into an active in-memory slideshow for the entire song, ready to trigger with <kbd class="kbd">Shift + Space</kbd> or <code>[slide]</code> tags.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Tab 3: Lyrics & Tags -->
@@ -1764,14 +1828,14 @@ Tip: Add [SLIDE] for auto-slide switches, or [VIDEO] for auto-video switches!"><
       </div>
 
       <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0">
-        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.35</span>
+        <span class="text-[11px] text-slate-500 font-mono">LyricFlow Studio v1.0.36</span>
         <button type="button" id="btn-close-help-footer" class="btn-primary px-5 py-1.5 text-xs">Got it, thanks!</button>
       </div>
     </div>
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="app.js?v=1.0.35"></script>
+  <script type="module" src="app.js?v=1.0.36"></script>
   <script>
     // Initialize Lucide icons on load
     document.addEventListener('DOMContentLoaded', () => {

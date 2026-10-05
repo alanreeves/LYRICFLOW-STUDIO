@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.35';
+export const APP_VERSION = '1.0.36';
 
 class App {
   constructor() {
@@ -2081,6 +2081,8 @@ class App {
 
     const addSelectedSlideshowBtn = document.getElementById('btn-pixabay-add-selected-slideshow');
     const selectedCountLabel = document.getElementById('pixabay-selected-count-label');
+    const downloadSelectedDiskBtn = document.getElementById('btn-pixabay-download-selected-disk');
+    const downloadCountLabel = document.getElementById('pixabay-download-count-label');
 
     let mediaType = 'images'; // 'images' or 'videos'
     let currentPage = 1;
@@ -2089,13 +2091,19 @@ class App {
     const selectedImages = new Map(); // id -> hit
 
     const updateSelectedSlideshowUI = () => {
-      if (!addSelectedSlideshowBtn) return;
       const count = selectedImages.size;
       if (count > 0 && mediaType === 'images') {
-        addSelectedSlideshowBtn.classList.remove('hidden');
-        if (selectedCountLabel) selectedCountLabel.textContent = `Add (${count}) to Slideshow`;
+        if (addSelectedSlideshowBtn) {
+          addSelectedSlideshowBtn.classList.remove('hidden');
+          if (selectedCountLabel) selectedCountLabel.textContent = `Add (${count}) to Slideshow`;
+        }
+        if (downloadSelectedDiskBtn) {
+          downloadSelectedDiskBtn.classList.remove('hidden');
+          if (downloadCountLabel) downloadCountLabel.textContent = `Save (${count}) to Computer`;
+        }
       } else {
-        addSelectedSlideshowBtn.classList.add('hidden');
+        if (addSelectedSlideshowBtn) addSelectedSlideshowBtn.classList.add('hidden');
+        if (downloadSelectedDiskBtn) downloadSelectedDiskBtn.classList.add('hidden');
       }
     };
 
@@ -2333,6 +2341,14 @@ class App {
           overlay.appendChild(addSlideBtn);
         }
 
+        // 4. Save to Computer Folder directly
+        const saveDiskBtn = document.createElement('button');
+        saveDiskBtn.type = 'button';
+        saveDiskBtn.className = 'w-full py-1 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow cursor-pointer border border-slate-700';
+        saveDiskBtn.innerHTML = '<i data-lucide="download" class="w-3 h-3 text-cyan-400"></i><span>Save to Computer</span>';
+        saveDiskBtn.addEventListener('click', () => handleDownloadAsset(hit, isVideo));
+        overlay.appendChild(saveDiskBtn);
+
         imgContainer.appendChild(overlay);
         card.appendChild(imgContainer);
 
@@ -2393,6 +2409,28 @@ class App {
       }
     };
 
+    // Download asset directly to user's computer disk
+    const handleDownloadAsset = async (hit, isVideo) => {
+      this.showToast(`Downloading ${isVideo ? 'video' : 'image'} to your computer...`, 'info', 2000);
+      try {
+        const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : hit.largeImageURL || hit.webformatURL;
+        const blob = await this.pixabay.fetchAsBlob(targetUrl);
+        const ext = isVideo ? 'mp4' : 'jpg';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pixabay_${hit.id}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast(`✨ Saved pixabay_${hit.id}.${ext} to your computer! Move to your song folder anytime.`, 'success', 3500);
+      } catch (err) {
+        console.error('Download error:', err);
+        this.showToast(`Download failed: ${err.message}`, 'error');
+      }
+    };
+
     // Asset Import: batch selected images into slideshow
     addSelectedSlideshowBtn?.addEventListener('click', async () => {
       const items = Array.from(selectedImages.values());
@@ -2421,6 +2459,33 @@ class App {
       } catch (err) {
         console.error('Batch import error:', err);
         this.showToast(`Batch import failed: ${err.message}`, 'error');
+      }
+    });
+
+    // Batch download selected images directly to user's computer disk
+    downloadSelectedDiskBtn?.addEventListener('click', async () => {
+      const items = Array.from(selectedImages.values());
+      if (items.length === 0) return;
+
+      this.showToast(`Downloading ${items.length} images to your computer...`, 'info', 2500);
+      try {
+        for (let i = 0; i < items.length; i++) {
+          const hit = items[i];
+          const blob = await this.pixabay.fetchAsBlob(hit.largeImageURL || hit.webformatURL);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `slide_${String(i + 1).padStart(2, '0')}_pixabay_${hit.id}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          await new Promise(r => setTimeout(r, 200));
+        }
+        this.showToast(`🎉 Downloaded ${items.length} images! You can now place them in a folder and load with "Select Folder".`, 'success', 4000);
+      } catch (err) {
+        console.error('Batch download error:', err);
+        this.showToast(`Batch download failed: ${err.message}`, 'error');
       }
     });
 
@@ -3379,7 +3444,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.35').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.36').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
