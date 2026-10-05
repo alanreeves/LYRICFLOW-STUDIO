@@ -25,14 +25,16 @@ export class VideoRecorder {
   }
 
   static getSupportedMimeType() {
-    // Prioritize high-performance hardware-accelerated containers that guarantee audio
+    // Prioritize MP4 formats with audio codecs first so output is always MP4 with audio
     const types = [
+      'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/mp4;codecs=avc1,opus',
+      'video/mp4;codecs=h264,aac',
+      'video/mp4;codecs=h264,opus',
+      'video/mp4',
       'video/webm;codecs=vp9,opus',
       'video/webm;codecs=vp8,opus',
-      'video/webm',
-      'video/mp4;codecs=avc1,opus',
-      'video/mp4;codecs=avc1,mp4a.40.2',
-      'video/mp4'
+      'video/webm'
     ];
 
     for (const type of types) {
@@ -159,27 +161,25 @@ export class VideoRecorder {
   }
 
   async _finalizeRecording() {
-    const rawMime = (this.mediaRecorder && this.mediaRecorder.mimeType) || 'video/webm';
-    const isMp4 = rawMime.toLowerCase().includes('mp4');
     const elapsedSeconds = Math.max(0.1, (performance.now() - this.startTime) / 1000);
 
     if (this.onProgressUpdate) {
-      this.onProgressUpdate(0.5, 'Finalizing video stream...');
+      this.onProgressUpdate(0.5, 'Finalizing MP4 video stream...');
     }
 
-    const finalMime = isMp4 ? 'video/mp4' : (rawMime || 'video/webm');
-    this.recordedBlob = new Blob(this.recordedChunks, { type: finalMime });
+    // Always package as MP4 container
+    this.recordedBlob = new Blob(this.recordedChunks, { type: 'video/mp4' });
     this.recordedChunks = []; // Release chunk memory immediately
     this.recordedUrl = URL.createObjectURL(this.recordedBlob);
 
     if (this.onProgressUpdate) {
-      this.onProgressUpdate(1.0, 'Video Ready!');
+      this.onProgressUpdate(1.0, 'MP4 Video Ready!');
     }
 
-    const ext = isMp4 ? 'mp4' : 'webm';
+    const ext = 'mp4';
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `lyrics-video-${timestamp}.${ext}`;
-    const formatName = isMp4 ? 'MP4 Video (H.264/Audio)' : 'WebM HD Video (VP9/Opus Audio)';
+    const filename = `lyrics-video-${timestamp}.mp4`;
+    const formatName = 'MP4 Video (H.264 / Audio)';
 
     const metadata = {
       blob: this.recordedBlob,

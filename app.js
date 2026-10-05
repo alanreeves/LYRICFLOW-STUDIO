@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.43';
+export const APP_VERSION = '1.0.44';
 
 class App {
   constructor() {
@@ -1771,7 +1771,7 @@ class App {
     if (statFormat) statFormat.textContent = metadata.mimeType;
     if (statSize) statSize.textContent = `${metadata.sizeMB} MB`;
 
-    this.showToast(`Video (${extLabel}) Ready for Download!`, 'success');
+    this.showToast('MP4 Video Ready for Download!', 'success');
   }
 
   // ==========================================
@@ -3242,7 +3242,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.43').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.44').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
