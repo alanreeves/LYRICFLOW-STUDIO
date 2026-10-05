@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.41';
+export const APP_VERSION = '1.0.42';
 
 class App {
   constructor() {
@@ -2088,7 +2088,46 @@ class App {
     let totalHits = 0;
     const perPage = 24;
     let targetDirHandle = null;
+    let fallbackSequenceNum = 0;
     const selectedItems = new Map(); // id -> { hit, isVideo }
+
+    // Scan target directory to determine highest numerical prefix (e.g. "01 - ...", "02 - ...")
+    const getHighestNumberInFolder = async () => {
+      let maxNum = 0;
+      if (targetDirHandle) {
+        try {
+          if (typeof targetDirHandle.values === 'function') {
+            for await (const entry of targetDirHandle.values()) {
+              if (entry.kind === 'file') {
+                const match = entry.name.match(/^(\d+)\s*[-_ ]\s*/);
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (!isNaN(num) && num < 1000 && num > maxNum) {
+                    maxNum = num;
+                  }
+                }
+              }
+            }
+          } else if (typeof targetDirHandle.entries === 'function') {
+            for await (const [name, entry] of targetDirHandle.entries()) {
+              const match = name.match(/^(\d+)\s*[-_ ]\s*/);
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (!isNaN(num) && num < 1000 && num > maxNum) {
+                  maxNum = num;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error reading directory entries to determine highest prefix:', e);
+        }
+      }
+      if (!targetDirHandle || maxNum === 0) {
+        maxNum = Math.max(maxNum, fallbackSequenceNum);
+      }
+      return maxNum;
+    };
 
     const updateFolderDisplay = () => {
       if (!folderNameLabel) return;
@@ -2434,10 +2473,17 @@ class App {
           }
         }
 
+        const highestNum = await getHighestNumberInFolder();
+        const nextNum = highestNum + 1;
+        if (!targetDirHandle) {
+          fallbackSequenceNum = nextNum;
+        }
+
+        const prefix = `${String(nextNum).padStart(2, '0')} - `;
         const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : hit.largeImageURL || hit.webformatURL;
         const blob = await this.pixabay.fetchAsBlob(targetUrl);
         const ext = isVideo ? 'mp4' : 'jpg';
-        const filename = `pixabay_${isVideo ? 'video' : 'photo'}_${hit.id}.${ext}`;
+        const filename = `${prefix}pixabay_${isVideo ? 'video' : 'photo'}_${hit.id}.${ext}`;
         const savedToFolder = await saveBlobToTarget(blob, filename);
         if (savedToFolder && targetDirHandle) {
           this.showToast(`✨ Saved ${filename} to ${targetDirHandle.name}!`, 'success', 3500);
@@ -2466,13 +2512,19 @@ class App {
 
       this.showToast(`Downloading ${items.length} items to folder...`, 'info', 2500);
       try {
+        let currentNum = await getHighestNumberInFolder();
         let savedCount = 0;
         for (let i = 0; i < items.length; i++) {
           const { hit, isVideo } = items[i];
+          currentNum++;
+          if (!targetDirHandle) {
+            fallbackSequenceNum = currentNum;
+          }
+          const prefix = `${String(currentNum).padStart(2, '0')} - `;
           const targetUrl = isVideo ? (hit.videos?.large?.url || hit.videos?.medium?.url || hit.videos?.small?.url) : (hit.largeImageURL || hit.webformatURL);
           const blob = await this.pixabay.fetchAsBlob(targetUrl);
           const ext = isVideo ? 'mp4' : 'jpg';
-          const filename = `slide_${String(i + 1).padStart(2, '0')}_pixabay_${hit.id}.${ext}`;
+          const filename = `${prefix}pixabay_${isVideo ? 'video' : 'photo'}_${hit.id}.${ext}`;
           await saveBlobToTarget(blob, filename);
           savedCount++;
           await new Promise(r => setTimeout(r, 200));
@@ -3188,7 +3240,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.41').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.42').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
