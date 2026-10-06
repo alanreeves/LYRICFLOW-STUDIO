@@ -8,7 +8,7 @@ import { CanvasRenderer } from './js/renderer.js';
 import { VideoRecorder } from './js/recorder.js';
 import { PixabayService } from './js/pixabayService.js';
 
-export const APP_VERSION = '1.0.44';
+export const APP_VERSION = '1.0.45';
 
 class App {
   constructor() {
@@ -2386,6 +2386,7 @@ class App {
         const isVideo = results.isVideo;
         const thumbUrl = isVideo ? (hit.videos?.tiny?.thumbnail || hit.userImageURL) : hit.webformatURL;
         const durationSec = isVideo ? hit.duration : null;
+        const videoPreviewUrl = isVideo ? (hit.videos?.tiny?.url || hit.videos?.small?.url || hit.videos?.medium?.url) : null;
 
         // Card Image & Overlays
         const imgContainer = document.createElement('div');
@@ -2398,21 +2399,83 @@ class App {
         img.loading = 'lazy';
         imgContainer.appendChild(img);
 
+        // Preview Video for Videos on Hover
+        if (isVideo && videoPreviewUrl) {
+          const previewVideo = document.createElement('video');
+          previewVideo.className = 'absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-200 z-0 pointer-events-none';
+          previewVideo.muted = true;
+          previewVideo.loop = true;
+          previewVideo.playsInline = true;
+          previewVideo.preload = 'none';
+          imgContainer.appendChild(previewVideo);
+
+          const playHint = document.createElement('div');
+          playHint.className = 'absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-200 group-hover:opacity-0 z-10';
+          playHint.innerHTML = '<span class="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/90 shadow-md"><i data-lucide="play" class="w-3.5 h-3.5 fill-white ml-0.5"></i></span>';
+          imgContainer.appendChild(playHint);
+
+          let isHovered = false;
+          let playPromise = null;
+
+          previewVideo.addEventListener('playing', () => {
+            if (isHovered) {
+              previewVideo.classList.remove('opacity-0');
+              previewVideo.classList.add('opacity-100');
+            }
+          });
+
+          card.addEventListener('mouseenter', () => {
+            isHovered = true;
+            if (!previewVideo.src) {
+              previewVideo.src = videoPreviewUrl;
+            }
+            if (previewVideo.readyState >= 2) {
+              previewVideo.classList.remove('opacity-0');
+              previewVideo.classList.add('opacity-100');
+            }
+            playPromise = previewVideo.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {});
+            }
+          });
+
+          card.addEventListener('mouseleave', () => {
+            isHovered = false;
+            previewVideo.classList.remove('opacity-100');
+            previewVideo.classList.add('opacity-0');
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                if (!isHovered) {
+                  previewVideo.pause();
+                  previewVideo.currentTime = 0;
+                }
+              }).catch(() => {
+                if (!isHovered) {
+                  previewVideo.pause();
+                }
+              });
+            } else {
+              previewVideo.pause();
+              previewVideo.currentTime = 0;
+            }
+          });
+        }
+
         // Selection checkbox for batch folder download
         const selectCheck = document.createElement('button');
         selectCheck.type = 'button';
         const isSelected = selectedItems.has(hit.id);
-        selectCheck.className = `absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border ${isSelected ? 'bg-brand-600 border-brand-400 text-white' : 'bg-slate-950/70 border-slate-600 text-transparent hover:border-white'}`;
+        selectCheck.className = `absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border z-10 ${isSelected ? 'bg-brand-600 border-brand-400 text-white' : 'bg-slate-950/70 border-slate-600 text-transparent hover:border-white'}`;
         selectCheck.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
         selectCheck.title = 'Select item for batch folder download';
         selectCheck.addEventListener('click', (e) => {
           e.stopPropagation();
           if (selectedItems.has(hit.id)) {
             selectedItems.delete(hit.id);
-            selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-slate-950/70 border-slate-600 text-transparent hover:border-white';
+            selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border z-10 bg-slate-950/70 border-slate-600 text-transparent hover:border-white';
           } else {
             selectedItems.set(hit.id, { hit, isVideo });
-            selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border bg-brand-600 border-brand-400 text-white';
+            selectCheck.className = 'absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center transition border z-10 bg-brand-600 border-brand-400 text-white';
           }
           updateSelectedUI();
         });
@@ -2421,7 +2484,7 @@ class App {
         // Video Duration Badge
         if (isVideo && durationSec) {
           const durationBadge = document.createElement('span');
-          durationBadge.className = 'absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white font-bold flex items-center gap-1';
+          durationBadge.className = 'absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white font-bold flex items-center gap-1 z-10';
           durationBadge.innerHTML = `<i data-lucide="video" class="w-2.5 h-2.5 text-brand-400"></i> ${durationSec}s`;
           imgContainer.appendChild(durationBadge);
         }
@@ -2580,6 +2643,12 @@ class App {
       if (!modal) return;
       modal.classList.add('opacity-0');
       setTimeout(() => modal.classList.add('hidden'), 200);
+      resultsGrid?.querySelectorAll('video').forEach(v => {
+        v.pause();
+        v.currentTime = 0;
+        v.classList.remove('opacity-100');
+        v.classList.add('opacity-0');
+      });
     };
 
     openPixabayBtn?.addEventListener('click', openModal);
@@ -3242,7 +3311,7 @@ class App {
   _setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=1.0.44').catch((err) => {
+        navigator.serviceWorker.register('./sw.js?v=1.0.45').catch((err) => {
           console.warn('SW registration info:', err);
         });
       });
